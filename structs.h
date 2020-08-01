@@ -8,8 +8,6 @@ struct vector2f_t {
 
 struct answer_t {
     double x0, y0, z0;
-    double kx, ky, kz;
-    answer_t() {}
 };
 
 
