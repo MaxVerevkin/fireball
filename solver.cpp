@@ -10,8 +10,8 @@
 ///////////////////////
 
 #define RANDOM_N 20
-#define TRIES_N 400000
-#define MAX_ERROR 8
+#define TRIES_N 10000
+#define MAX_ERROR 7.1
 
 #define RANDOM_AMPL_MUL (1. / 1.45) // from 1 to inf
 #define RANDOM_ALPHA_MEAN 1        // from 0 to 1
@@ -22,10 +22,10 @@
 ///////////////////////////////////////////
 
 double x0_r_mean = 4000000.;
-double x0_r_ampl = 2000000.;
+double x0_r_ampl = 1000000.;
 
 double y0_r_mean = 4000000.;
-double y0_r_ampl = 2000000.;
+double y0_r_ampl = 1000000.;
 
 double z0_r_mean = 50000.;
 double z0_r_ampl = 50000.;
