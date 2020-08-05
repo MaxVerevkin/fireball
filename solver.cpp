@@ -9,10 +9,10 @@
 /// Hyperparameters ///
 ///////////////////////
 
-#define RANDOM_N 15
+#define RANDOM_N 20
 #define DERIV_N 5000
 #define TRIES_N 7000
-#define MAX_ERROR 3.5
+#define MAX_ERROR 3
 #define DERIV_W 10.
 
 #define RANDOM_AMPL_MUL (1. / 1.45) // from 1 to inf
