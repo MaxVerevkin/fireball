@@ -9,9 +9,10 @@
 /// Hyperparameters ///
 ///////////////////////
 
-#define RANDOM_N 20
+#define RANDOM_FLASH_N 20
+#define RANDOM_TRAJ_N 50
 #define TRIES_N 3000
-#define MAX_ERROR 11
+#define MAX_ERROR 6
 
 #define RANDOM_AMPL_MUL (1. / 1.45) // from 1 to inf
 #define RANDOM_ALPHA_MEAN 1        // from 0 to 1
@@ -29,6 +30,15 @@ double y0_r_ampl = 500000.;
 
 double z0_r_mean = 50000.;
 double z0_r_ampl = 50000.;
+
+double kx_r_mean = 0.;
+double kx_r_ampl = 72000.;
+
+double ky_r_mean = 0.;
+double ky_r_ampl = 72000.;
+
+double kz_r_mean = 36000.;
+double kz_r_ampl = 36000.;
 
 
 /////////////////
@@ -93,6 +103,36 @@ void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_err
         }
     }
 }
+void run_random_epoch_on_traj(data_t &data, const vec3d_t &flash, vec3d_t &best_traj, double *best_error) {
+    #pragma omp parallel
+    {
+        std::mt19937 e2(r()*(omp_get_thread_num()+878));
+
+        processed_answer proc_ans;
+        vec3d_t local_best_traj;
+        double local_best_error = INFINITY;
+
+        vec3d_t traj;
+        for (int i = 0; i < TRIES_N; i++) {
+            traj.x = kx_r_mean + kx_r_ampl * dist(e2);
+            traj.y = ky_r_mean + ky_r_ampl * dist(e2);
+            traj.z = kz_r_mean + kz_r_ampl * dist(e2);
+            
+            double error = data.rate_flash_traj(flash, traj, proc_ans);
+            if (error < local_best_error) {
+                local_best_error = error;
+                local_best_traj = traj;
+            }
+        }
+
+
+        #pragma omp critical
+        if (local_best_error < *best_error) {
+            *best_error = local_best_error;
+            best_traj = local_best_traj;
+        }
+    }
+}
 
 
 /*
@@ -103,39 +143,67 @@ int main() {
     printf("Data is initialized\n");
 
     vec3d_t flash_pos;
-    double error = INFINITY;
+    vec3d_t flash_traj;
+    double flash_error = INFINITY;
+    double traj_error = INFINITY;
 
-    for (int i = 0; i+4 < RANDOM_N; i+=5) {
-        run_random_epoch_on_flash(data, flash_pos, &error);
+
+    ///////////////////////////
+    /// Find flash position ///
+    ///////////////////////////
+
+    for (int i = 0; i+4 < RANDOM_FLASH_N; i+=5) {
+        run_random_epoch_on_flash(data, flash_pos, &flash_error);
         update_flash_range(flash_pos);
-        run_random_epoch_on_flash(data, flash_pos, &error);
+        run_random_epoch_on_flash(data, flash_pos, &flash_error);
         update_flash_range(flash_pos);
-        run_random_epoch_on_flash(data, flash_pos, &error);
+        run_random_epoch_on_flash(data, flash_pos, &flash_error);
         update_flash_range(flash_pos);
-        run_random_epoch_on_flash(data, flash_pos, &error);
+        run_random_epoch_on_flash(data, flash_pos, &flash_error);
         update_flash_range(flash_pos);
-        run_random_epoch_on_flash(data, flash_pos, &error);
+        run_random_epoch_on_flash(data, flash_pos, &flash_error);
         update_flash_range(flash_pos);
         data.eliminate_inconsistent_flash_data(flash_pos, MAX_ERROR);
     }
 
-    error = data.rate_flash_pos(flash_pos);
     printf("\nSummary on finding flash position:\n");
-    printf("    Total square-error (rad): %#9.6f\n", error);
-    printf("    Mean square-error  (rad): %#9.6f\n", error / (data_N * 5 - data.k_count));
-    printf("    Standard error     (deg): %#9.6f\n", sqrt(error / (data_N * 5 - data.k_count))/PI*180);
+    printf("    Total square-error (rad): %#9.6f\n", flash_error);
+    printf("    Mean square-error  (rad): %#9.6f\n", flash_error / (data_N * 2 - data.k_count));
+    printf("    Standard error     (deg): %#9.6f\n", sqrt(flash_error / (data_N * 2 - data.k_count))/PI*180);
+
+
+    /////////////////////////////
+    /// Find flash trajectory ///
+    /////////////////////////////
+
+    for (int i = 0; i+4 < RANDOM_TRAJ_N; i+=5) {
+        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        data.eliminate_inconsistent_traj_data(flash_pos, flash_traj, MAX_ERROR);
+    }
+
+    printf("\nSummary on finding flash trajectory:\n");
+    printf("    Total square-error (rad): %#9.6f\n", traj_error);
+    printf("    Mean square-error  (rad): %#9.6f\n", traj_error / (data_N * 3 - data.k_count));
+    printf("    Standard error     (deg): %#9.6f\n", sqrt(traj_error / (data_N * 3 - data.k_count))/PI*180);
+
 
 
     // Print answer
-    printf("\nAnswer: %#9.0f %#9.0f %#9.0f\n",
-            flash_pos.x, flash_pos.y, flash_pos.z);
+    printf("\nAnswer: %#9.0f %#9.0f %#9.0f %#9.0f %#9.0f %#9.0f\n",
+            flash_pos.x, flash_pos.y, flash_pos.z, flash_traj.x, flash_traj.y, flash_traj.z);
 
     // Print processed answer for each observer
     printf("\n");
-    data.process_flash_pos(flash_pos);
+    //data.process_flash_traj(flash_pos, flash_traj, data.ex_data);
     for (int i = 0; i < data_N; i++) {
-        printf("Processed Answer (%i): %#7.3f | %7.3f\n", i+1,
-                data.ex_data.z0[i]/PI*180, data.ex_data.h0[i]/PI*180);
+        printf("Processed Answer (%i): %#7.3f | %7.3f | %7.3f | %7.3f | %7.3f\n", i+1,
+                data.ex_data.z0[i]/PI*180, data.ex_data.h0[i]/PI*180,
+                data.ex_data.zb[i]/PI*180, data.ex_data.hb[i]/PI*180,
+                data.ex_data.a[i]/PI*180);
     }
 
     // Print ignored data
@@ -145,6 +213,12 @@ int main() {
             printf("Ignore: 'azimuth end'    for observer %i\n", i+1);
         if (!data.k_h0[i])
             printf("Ignore: 'altitude end'   for observer %i\n", i+1);
+        if (!data.k_zb[i])
+            printf("Ignore: 'azimuth begin'  for observer %i\n", i+1);
+        if (!data.k_hb[i])
+            printf("Ignore: 'altitude begin' for observer %i\n", i+1);
+        if (!data.k_a[i])
+            printf("Ignore: 'desent_angle'   for observer %i\n", i+1);
     }
 
     // Exit

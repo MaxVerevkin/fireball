@@ -10,9 +10,12 @@
 /*
  * Observer's expected data.
  */
-struct processed_answer {    
+struct processed_answer {
     alignas(16) double z0[data_N];
     alignas(16) double h0[data_N];
+    alignas(16) double zb[data_N];
+    alignas(16) double hb[data_N];
+    alignas(16) double a[data_N];
 };
 
 
@@ -29,6 +32,9 @@ struct data_t {
     alignas(16) double *ob_height;
     alignas(16) double *ob_z0;
     alignas(16) double *ob_h0;
+    alignas(16) double *ob_zb;
+    alignas(16) double *ob_hb;
+    alignas(16) double *ob_a;
 
     // Observer's expected data given some answer
     processed_answer ex_data;
@@ -37,6 +43,9 @@ struct data_t {
     int k_count = 0;
     alignas(16) double k_z0[data_N];
     alignas(16) double k_h0[data_N];
+    alignas(16) double k_zb[data_N];
+    alignas(16) double k_hb[data_N];
+    alignas(16) double k_a[data_N];
     alignas(16) vec2d_t pos_2d[data_N];
 
     /*
@@ -49,25 +58,22 @@ struct data_t {
      * Sets K=0 to all data which square-error is
      * max_error_k times greater than mean square-error
      */
-    void eliminate_inconsistent_flash_data(const vec3d_t &pos, double max_error);
+    void eliminate_inconsistent_flash_data(const vec3d_t &pos, double max_error_k);
+    void eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_t params, double max_error_k);
 
 
     /*
      * Return square-error of a given answer.
      */
     double rate_flash_pos(const vec3d_t &pos, processed_answer &dest);
-    inline double rate_flash_pos(const vec3d_t &pos) {
-        return rate_flash_pos(pos, ex_data);
-    }
+    double rate_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest);
 
 
     /*
      * Fills in the 'expected' values.
      */
     void process_flash_pos(const vec3d_t &pos, processed_answer &dest);
-    inline void process_flash_pos(const vec3d_t &pos) {
-        return process_flash_pos(pos, ex_data);
-    }
+    void process_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest);
 };
 
 
