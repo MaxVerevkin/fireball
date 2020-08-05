@@ -98,10 +98,10 @@ data_t::data_t() {
  * Sets K=0 to all data which square-error is
  * max_error_k times greater than mean square-error
  */
-void data_t::eliminate_inconsistent(const vec3d_t &answer, double max_error_k) {
+void data_t::eliminate_inconsistent_flash_data(const vec3d_t &pos, double max_error_k) {
     k_count = 0;
 
-    double mean_error = rate_flash_pos(answer) / (data_N * 5);
+    double mean_error = rate_flash_pos(pos) / (data_N * 5);
     double max_error = mean_error * max_error_k;
 
     for (int i = 0; i < data_N; i++) {
@@ -118,7 +118,7 @@ void data_t::eliminate_inconsistent(const vec3d_t &answer, double max_error_k) {
  * Returns square-error of given answer
  */
 double data_t::rate_flash_pos(const vec3d_t &pos, processed_answer &dest) {
-    process_answer(pos, dest);
+    process_flash_pos(pos, dest);
 
     __m128d error = _mm_setzero_pd();
     __m128d err;
@@ -145,12 +145,12 @@ double data_t::rate_flash_pos(const vec3d_t &pos, processed_answer &dest) {
 /*
  * Fills in the 'expected' values.
  */
-void data_t::process_answer(const vec3d_t &answer, processed_answer &dest) {
+void data_t::process_flash_pos(const vec3d_t &pos, processed_answer &dest) {
     for (int i = 0; i < data_N; i++) {
         // Relative position of flash
-        double x0i = answer.x - pos_2d[i].x;
-        double y0i = answer.y - pos_2d[i].y;
-        double z0i = answer.z - ob_height[i];
+        double x0i = pos.x - pos_2d[i].x;
+        double y0i = pos.y - pos_2d[i].y;
+        double z0i = pos.z - ob_height[i];
 
         // Azimuth and altitude of flash
         dest.z0[i] = azimuth(x0i, y0i);

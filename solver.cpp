@@ -44,11 +44,11 @@ double z0_r_ampl = 50000.;
  *      between old mean and current answer, i.e.:
  *          new_mean=lerp(mean,answer,RANDOM_ALPHA_MEAN)
  */
-void update_range(const vec3d_t &answer) {
+void update_flash_range(const vec3d_t &pos) {
     // Calculate new mean
-    x0_r_mean = lerp(x0_r_mean, answer.x, RANDOM_ALPHA_MEAN);
-    y0_r_mean = lerp(y0_r_mean, answer.y, RANDOM_ALPHA_MEAN);
-    z0_r_mean = lerp(z0_r_mean, answer.z, RANDOM_ALPHA_MEAN);
+    x0_r_mean = lerp(x0_r_mean, pos.x, RANDOM_ALPHA_MEAN);
+    y0_r_mean = lerp(y0_r_mean, pos.y, RANDOM_ALPHA_MEAN);
+    z0_r_mean = lerp(z0_r_mean, pos.z, RANDOM_ALPHA_MEAN);
 
     // Calculate new amplitude
     x0_r_ampl *= RANDOM_AMPL_MUL;
@@ -63,30 +63,25 @@ void update_range(const vec3d_t &answer) {
  */
 std::random_device r;
 std::uniform_real_distribution<> dist(-1, 1);
-void run_random_epoch(data_t &data, vec3d_t &best_answer, double *best_error) {
-    std::mt19937 _e2(r());
+void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_error) {
     #pragma omp parallel
     {
-        std::mt19937 e2(_e2()*(omp_get_thread_num()+878));
+        std::mt19937 e2(r()*(omp_get_thread_num()+878));
 
         processed_answer proc_ans;
-        vec3d_t local_best_answer;
+        vec3d_t local_best_pos;
         double local_best_error = INFINITY;
-        vec3d_t answer;
-        double error;
 
-
-        //#pragma omp for
+        vec3d_t pos;
         for (int i = 0; i < TRIES_N; i++) {
-            answer.x = x0_r_mean + x0_r_ampl * dist(e2);
-            answer.y = y0_r_mean + y0_r_ampl * dist(e2);
-            answer.z = z0_r_mean + z0_r_ampl * dist(e2);
+            pos.x = x0_r_mean + x0_r_ampl * dist(e2);
+            pos.y = y0_r_mean + y0_r_ampl * dist(e2);
+            pos.z = z0_r_mean + z0_r_ampl * dist(e2);
             
-            error = data.rate_flash_pos(answer, proc_ans);
-
+            double error = data.rate_flash_pos(pos, proc_ans);
             if (error < local_best_error) {
                 local_best_error = error;
-                local_best_answer = answer;
+                local_best_pos = pos;
             }
         }
 
@@ -94,7 +89,7 @@ void run_random_epoch(data_t &data, vec3d_t &best_answer, double *best_error) {
         #pragma omp critical
         if (local_best_error < *best_error) {
             *best_error = local_best_error;
-            best_answer = local_best_answer;
+            best_pos = local_best_pos;
         }
     }
 }
@@ -107,25 +102,25 @@ int main() {
     data_t data;
     printf("Data is initialized\n");
 
-    vec3d_t answer;
+    vec3d_t flash_pos;
     double error = INFINITY;
 
     for (int i = 0; i+4 < RANDOM_N; i+=5) {
-        run_random_epoch(data, answer, &error);
-        update_range(answer);
-        run_random_epoch(data, answer, &error);
-        update_range(answer);
-        run_random_epoch(data, answer, &error);
-        update_range(answer);
-        run_random_epoch(data, answer, &error);
-        update_range(answer);
-        run_random_epoch(data, answer, &error);
-        update_range(answer);
-        data.eliminate_inconsistent(answer, MAX_ERROR);
+        run_random_epoch_on_flash(data, flash_pos, &error);
+        update_flash_range(flash_pos);
+        run_random_epoch_on_flash(data, flash_pos, &error);
+        update_flash_range(flash_pos);
+        run_random_epoch_on_flash(data, flash_pos, &error);
+        update_flash_range(flash_pos);
+        run_random_epoch_on_flash(data, flash_pos, &error);
+        update_flash_range(flash_pos);
+        run_random_epoch_on_flash(data, flash_pos, &error);
+        update_flash_range(flash_pos);
+        data.eliminate_inconsistent_flash_data(flash_pos, MAX_ERROR);
     }
 
-    error = data.rate_flash_pos(answer);
-    printf("\nSummary:\n");
+    error = data.rate_flash_pos(flash_pos);
+    printf("\nSummary on finding flash position:\n");
     printf("    Total square-error (rad): %#9.6f\n", error);
     printf("    Mean square-error  (rad): %#9.6f\n", error / (data_N * 5 - data.k_count));
     printf("    Standard error     (deg): %#9.6f\n", sqrt(error / (data_N * 5 - data.k_count))/PI*180);
@@ -133,11 +128,11 @@ int main() {
 
     // Print answer
     printf("\nAnswer: %#9.0f %#9.0f %#9.0f\n",
-            answer.x, answer.y, answer.z);
+            flash_pos.x, flash_pos.y, flash_pos.z);
 
-    // Print processed answer for each observer (include ignored)
+    // Print processed answer for each observer
     printf("\n");
-    data.process_answer(answer);
+    data.process_flash_pos(flash_pos);
     for (int i = 0; i < data_N; i++) {
         printf("Processed Answer (%i): %#7.3f | %7.3f\n", i+1,
                 data.ex_data.z0[i]/PI*180, data.ex_data.h0[i]/PI*180);

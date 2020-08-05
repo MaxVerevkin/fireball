@@ -1,7 +1,6 @@
 #ifndef DATA_H
 #define DATA_H
 
-# define DATA_N 6 // Should be divisible be 2
 # define data_N 6 // Should be divisible be 2
 
 #include "utils.h"
@@ -50,7 +49,7 @@ struct data_t {
      * Sets K=0 to all data which square-error is
      * max_error_k times greater than mean square-error
      */
-    void eliminate_inconsistent(const vec3d_t &answer, double max_error);
+    void eliminate_inconsistent_flash_data(const vec3d_t &pos, double max_error);
 
 
     /*
@@ -65,9 +64,9 @@ struct data_t {
     /*
      * Fills in the 'expected' values.
      */
-    void process_answer(const vec3d_t &answer, processed_answer &dest);
-    inline void process_answer(const vec3d_t &answer) {
-        return process_answer(answer, ex_data);
+    void process_flash_pos(const vec3d_t &pos, processed_answer &dest);
+    inline void process_flash_pos(const vec3d_t &pos) {
+        return process_flash_pos(pos, ex_data);
     }
 };
 
