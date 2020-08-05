@@ -2,14 +2,13 @@
 #define STRUCTURES_H
 
 
-struct vector2f_t {
+struct vec2d_t {
     double x, y;
 };
 
-struct answer_t {
-    double x0, y0, z0;
+struct vec3d_t {
+    double x, y, z;
 };
-
 
 
 #endif

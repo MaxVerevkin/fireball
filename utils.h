@@ -14,7 +14,7 @@
 #define lerp(a0, a1, w) ((a0) + (w)*((a1) - (a0))) 
 
 // Translate geographical location to XY.
-#define geo_to_xy(lat, lon) (vector2f_t {(EARTH_R * lon * cos(lat)), (EARTH_R * lat)})
+#define geo_to_xy(lat, lon) (vec2d_t {(EARTH_R * lon * cos(lat)), (EARTH_R * lat)})
 
 // Calculate delta of two angles.
 double angle_delta(double a1, double a2);

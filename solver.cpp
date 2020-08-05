@@ -11,7 +11,7 @@
 
 #define RANDOM_N 20
 #define TRIES_N 10000
-#define MAX_ERROR 7.1
+#define MAX_ERROR 11
 
 #define RANDOM_AMPL_MUL (1. / 1.45) // from 1 to inf
 #define RANDOM_ALPHA_MEAN 1        // from 0 to 1
@@ -44,11 +44,11 @@ double z0_r_ampl = 50000.;
  *      between old mean and current answer, i.e.:
  *          new_mean=lerp(mean,answer,RANDOM_ALPHA_MEAN)
  */
-void update_range(const answer_t &answer) {
+void update_range(const vec3d_t &answer) {
     // Calculate new mean
-    x0_r_mean = lerp(x0_r_mean, answer.x0, RANDOM_ALPHA_MEAN);
-    y0_r_mean = lerp(y0_r_mean, answer.y0, RANDOM_ALPHA_MEAN);
-    z0_r_mean = lerp(z0_r_mean, answer.z0, RANDOM_ALPHA_MEAN);
+    x0_r_mean = lerp(x0_r_mean, answer.x, RANDOM_ALPHA_MEAN);
+    y0_r_mean = lerp(y0_r_mean, answer.y, RANDOM_ALPHA_MEAN);
+    z0_r_mean = lerp(z0_r_mean, answer.z, RANDOM_ALPHA_MEAN);
 
     // Calculate new amplitude
     x0_r_ampl *= RANDOM_AMPL_MUL;
@@ -63,26 +63,26 @@ void update_range(const answer_t &answer) {
  */
 std::random_device r;
 std::uniform_real_distribution<> dist(-1, 1);
-void run_random_epoch(data_t &data, answer_t &best_answer, double *best_error) {
+void run_random_epoch(data_t &data, vec3d_t &best_answer, double *best_error) {
     std::mt19937 _e2(r());
     #pragma omp parallel
     {
         std::mt19937 e2(_e2()*(omp_get_thread_num()+878));
 
         processed_answer proc_ans;
-        answer_t local_best_answer;
+        vec3d_t local_best_answer;
         double local_best_error = INFINITY;
-        answer_t answer;
+        vec3d_t answer;
         double error;
 
 
         //#pragma omp for
         for (int i = 0; i < TRIES_N; i++) {
-            answer.x0 = x0_r_mean + x0_r_ampl * dist(e2);
-            answer.y0 = y0_r_mean + y0_r_ampl * dist(e2);
-            answer.z0 = z0_r_mean + z0_r_ampl * dist(e2);
+            answer.x = x0_r_mean + x0_r_ampl * dist(e2);
+            answer.y = y0_r_mean + y0_r_ampl * dist(e2);
+            answer.z = z0_r_mean + z0_r_ampl * dist(e2);
             
-            error = data.rate_answer(answer, proc_ans);
+            error = data.rate_flash_pos(answer, proc_ans);
 
             if (error < local_best_error) {
                 local_best_error = error;
@@ -107,7 +107,7 @@ int main() {
     data_t data;
     printf("Data is initialized\n");
 
-    answer_t answer;
+    vec3d_t answer;
     double error = INFINITY;
 
     for (int i = 0; i+4 < RANDOM_N; i+=5) {
@@ -124,7 +124,7 @@ int main() {
         data.eliminate_inconsistent(answer, MAX_ERROR);
     }
 
-    error = data.rate_answer(answer);
+    error = data.rate_flash_pos(answer);
     printf("\nSummary:\n");
     printf("    Total square-error (rad): %#9.6f\n", error);
     printf("    Mean square-error  (rad): %#9.6f\n", error / (data_N * 5 - data.k_count));
@@ -133,7 +133,7 @@ int main() {
 
     // Print answer
     printf("\nAnswer: %#9.0f %#9.0f %#9.0f\n",
-            answer.x0, answer.y0, answer.z0);
+            answer.x, answer.y, answer.z);
 
     // Print processed answer for each observer (include ignored)
     printf("\n");

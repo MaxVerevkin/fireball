@@ -8,21 +8,21 @@ data_t::data_t() {
 
     // in deg
     ob_lat = new double[data_N] {
-        34.91,
-        35.22,
+        34.87,
+        35.13,
         34.72,
         34.73,
-        35.26,
-        35.49
+        35.17,
+        35.36
     };
     // in deg
     ob_lon = new double[data_N] {
-        32.84,
-        33.16,  
-        32.94,
-        33.48,
-        32.72,
-        32.82,
+        32.92,
+        33.30,
+        33.04,
+        33.69,
+        32.78,
+        32.89
     };
     // in m
     ob_height = new double[data_N] {
@@ -34,7 +34,7 @@ data_t::data_t() {
         200
     };
     // in deg
-    //ob_a = new double[data_N] {
+    //obi_a = new double[data_N] {
         //236,
         //288,
         //241,
@@ -98,14 +98,10 @@ data_t::data_t() {
  * Sets K=0 to all data which square-error is
  * max_error_k times greater than mean square-error
  */
-void data_t::eliminate_inconsistent(const answer_t &answer, double max_error_k) {
-    for (int i = 0; i < data_N; i++) {
-        k_z0[i] = 1;
-        k_h0[i] = 1;
-    }
+void data_t::eliminate_inconsistent(const vec3d_t &answer, double max_error_k) {
     k_count = 0;
 
-    double mean_error = rate_answer(answer) / (data_N * 5);
+    double mean_error = rate_flash_pos(answer) / (data_N * 5);
     double max_error = mean_error * max_error_k;
 
     for (int i = 0; i < data_N; i++) {
@@ -121,11 +117,8 @@ void data_t::eliminate_inconsistent(const answer_t &answer, double max_error_k) 
 /*
  * Returns square-error of given answer
  */
-double data_t::rate_answer(const answer_t &answer) {
-    return rate_answer(answer, ex_data);
-}
-double data_t::rate_answer(const answer_t &answer, processed_answer &dest) {
-    process_answer(answer, dest);
+double data_t::rate_flash_pos(const vec3d_t &pos, processed_answer &dest) {
+    process_answer(pos, dest);
 
     __m128d error = _mm_setzero_pd();
     __m128d err;
@@ -152,15 +145,12 @@ double data_t::rate_answer(const answer_t &answer, processed_answer &dest) {
 /*
  * Fills in the 'expected' values.
  */
-void data_t::process_answer(const answer_t &answer) {
-    process_answer(answer, ex_data);
-}
-void data_t::process_answer(const answer_t &answer, processed_answer &dest) {
+void data_t::process_answer(const vec3d_t &answer, processed_answer &dest) {
     for (int i = 0; i < data_N; i++) {
         // Relative position of flash
-        double x0i = answer.x0 - pos_2d[i].x;
-        double y0i = answer.y0 - pos_2d[i].y;
-        double z0i = answer.z0 - ob_height[i];
+        double x0i = answer.x - pos_2d[i].x;
+        double y0i = answer.y - pos_2d[i].y;
+        double z0i = answer.z - ob_height[i];
 
         // Azimuth and altitude of flash
         dest.z0[i] = azimuth(x0i, y0i);
