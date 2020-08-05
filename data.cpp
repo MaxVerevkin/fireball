@@ -195,7 +195,6 @@ double data_t::rate_flash_traj(const vec3d_t &flash, const vec3d_t &params, proc
 /*
  * Fills in the 'expected' values.
  */
-#include <stdio.h>
 void data_t::process_flash_pos(const vec3d_t &pos, processed_answer &dest) {
     for (int i = 0; i < data_N; i++) {
         // Relative position of flash
@@ -240,6 +239,5 @@ void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, pro
                 dest.t[i] = t;
             }
         }
-        //printf("%f\n", bt);
     }
 }
