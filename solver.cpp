@@ -10,12 +10,14 @@
 ///////////////////////
 
 #define RANDOM_FLASH_N 20
-#define RANDOM_TRAJ_N 50
-#define TRIES_N 3000
+#define RANDOM_TRAJ_N 100
+#define TRIES_N 4000
 #define MAX_ERROR 6
 
-#define RANDOM_AMPL_MUL (1. / 1.45) // from 1 to inf
-#define RANDOM_ALPHA_MEAN 1        // from 0 to 1
+#define FLASH_AMPL_MUL (1. / 1.45) // from 1 to inf
+#define FLASH_ALPHA_MEAN 1        // from 0 to 1
+#define TRAJ_AMPL_MUL (1. / 1.03) // from 1 to inf
+#define TRAJ_ALPHA_MEAN 1        // from 0 to 1
 
 
 ///////////////////////////////////////////
@@ -56,14 +58,25 @@ double kz_r_ampl = 36000.;
  */
 void update_flash_range(const vec3d_t &pos) {
     // Calculate new mean
-    x0_r_mean = lerp(x0_r_mean, pos.x, RANDOM_ALPHA_MEAN);
-    y0_r_mean = lerp(y0_r_mean, pos.y, RANDOM_ALPHA_MEAN);
-    z0_r_mean = lerp(z0_r_mean, pos.z, RANDOM_ALPHA_MEAN);
+    x0_r_mean = lerp(x0_r_mean, pos.x, FLASH_ALPHA_MEAN);
+    y0_r_mean = lerp(y0_r_mean, pos.y, FLASH_ALPHA_MEAN);
+    z0_r_mean = lerp(z0_r_mean, pos.z, FLASH_ALPHA_MEAN);
 
     // Calculate new amplitude
-    x0_r_ampl *= RANDOM_AMPL_MUL;
-    y0_r_ampl *= RANDOM_AMPL_MUL;
-    z0_r_ampl *= RANDOM_AMPL_MUL;
+    x0_r_ampl *= FLASH_AMPL_MUL;
+    y0_r_ampl *= FLASH_AMPL_MUL;
+    z0_r_ampl *= FLASH_AMPL_MUL;
+}
+void update_traj_range(const vec3d_t &traj) {
+    // Calculate new mean
+    kx_r_mean = lerp(kx_r_mean, traj.x, TRAJ_ALPHA_MEAN);
+    ky_r_mean = lerp(ky_r_mean, traj.y, TRAJ_ALPHA_MEAN);
+    kz_r_mean = lerp(kz_r_mean, traj.z, TRAJ_ALPHA_MEAN);
+
+    // Calculate new amplitude
+    kx_r_ampl *= TRAJ_AMPL_MUL;
+    ky_r_ampl *= TRAJ_AMPL_MUL;
+    kz_r_ampl *= TRAJ_AMPL_MUL;
 }
 
 
@@ -178,10 +191,15 @@ int main() {
 
     for (int i = 0; i+4 < RANDOM_TRAJ_N; i+=5) {
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        update_traj_range(flash_traj);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        update_traj_range(flash_traj);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        update_traj_range(flash_traj);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        update_traj_range(flash_traj);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+        update_traj_range(flash_traj);
         data.eliminate_inconsistent_traj_data(flash_pos, flash_traj, MAX_ERROR);
     }
 
@@ -200,10 +218,10 @@ int main() {
     printf("\n");
     //data.process_flash_traj(flash_pos, flash_traj, data.ex_data);
     for (int i = 0; i < data_N; i++) {
-        printf("Processed Answer (%i): %#7.3f | %7.3f | %7.3f | %7.3f | %7.3f\n", i+1,
+        printf("Processed Answer (%i): %#7.3f | %7.3f | %7.3f | %7.3f | %7.3f | %7.3f\n", i+1,
                 data.ex_data.z0[i]/PI*180, data.ex_data.h0[i]/PI*180,
                 data.ex_data.zb[i]/PI*180, data.ex_data.hb[i]/PI*180,
-                data.ex_data.a[i]/PI*180);
+                data.ex_data.a[i]/PI*180, data.ex_data.t[i]);
     }
 
     // Print ignored data

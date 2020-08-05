@@ -16,6 +16,7 @@ struct processed_answer {
     alignas(16) double zb[data_N];
     alignas(16) double hb[data_N];
     alignas(16) double a[data_N];
+    alignas(16) double t[data_N];
 };
 
 

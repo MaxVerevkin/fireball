@@ -195,6 +195,7 @@ double data_t::rate_flash_traj(const vec3d_t &flash, const vec3d_t &params, proc
 /*
  * Fills in the 'expected' values.
  */
+#include <stdio.h>
 void data_t::process_flash_pos(const vec3d_t &pos, processed_answer &dest) {
     for (int i = 0; i < data_N; i++) {
         // Relative position of flash
@@ -209,24 +210,36 @@ void data_t::process_flash_pos(const vec3d_t &pos, processed_answer &dest) {
 }
 void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest) {
     for (int i = 0; i < data_N; i++) {
-        // FIXME
-        double t = 2;
-
         // Relative position of flash
         double x0i = flash.x - pos_2d[i].x;
         double y0i = flash.y - pos_2d[i].y;
         double z0i = flash.z - ob_height[i];
 
-        // Relative begining position
-        double xbi = x0i + params.x*t;
-        double ybi = y0i + params.y*t;
-        double zbi = z0i + params.z*t;
+        double best_error = INFINITY;
+        for (double t = 1; t <= 4; t += .2) {
+            // Relative begining position
+            double c_xbi = x0i + params.x*t;
+            double c_ybi = y0i + params.y*t;
+            double c_zbi = z0i + params.z*t;
+            // Azimuth and altitude of the begining
+            double zbi = azimuth(c_xbi, c_ybi);
+            double hbi = altitude(c_xbi, c_ybi, c_zbi);
+            // Desent angle
+            double ai = desent_angle(hbi, zbi, dest.h0[i], dest.z0[i]);
 
-        // Azimuth and altitude of the begining
-        dest.zb[i] = azimuth(xbi, ybi);
-        dest.hb[i] = altitude(xbi, ybi, zbi);
-        
-        // Desent angle
-        dest.a[i] = desent_angle(dest.hb[i], dest.zb[i], dest.h0[i], dest.z0[i]);
+            // Error
+            double error = 0;
+            error += pow(angle_delta(zbi, ob_zb[i]), 2) * k_zb[i];
+            error += pow(angle_delta(hbi, ob_hb[i]), 2) * k_hb[i];
+            error += pow(angle_delta(ai, ob_a[i]), 2) * k_a[i];
+            if (error < best_error) {
+                best_error = error;
+                dest.zb[i] = zbi;
+                dest.hb[i] = hbi;
+                dest.a[i] = ai;
+                dest.t[i] = t;
+            }
+        }
+        //printf("%f\n", bt);
     }
 }
