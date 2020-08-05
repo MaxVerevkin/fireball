@@ -215,8 +215,7 @@ int main() {
             flash_pos.x, flash_pos.y, flash_pos.z, flash_traj.x, flash_traj.y, flash_traj.z);
 
     // Print processed answer for each observer
-    printf("\n");
-    //data.process_flash_traj(flash_pos, flash_traj, data.ex_data);
+    printf("\n                  i     z0        h0        zb        hb         a         T   \n");
     for (int i = 0; i < data_N; i++) {
         printf("Processed Answer (%i): %#7.3f | %7.3f | %7.3f | %7.3f | %7.3f | %7.3f\n", i+1,
                 data.ex_data.z0[i]/PI*180, data.ex_data.h0[i]/PI*180,

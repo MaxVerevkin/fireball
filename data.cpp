@@ -215,7 +215,7 @@ void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, pro
         double z0i = flash.z - ob_height[i];
 
         double best_error = INFINITY;
-        for (double t = 1; t <= 4; t += .2) {
+        for (double t = 1; t <= 4; t += .1) {
             // Relative begining position
             double c_xbi = x0i + params.x*t;
             double c_ybi = y0i + params.y*t;
