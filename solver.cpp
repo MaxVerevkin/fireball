@@ -161,7 +161,7 @@ int main() {
     printf("\nAnswer: %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f\n",
             flash_pos.x, flash_pos_sigma.x,
             flash_pos.y, flash_pos_sigma.y,
-            flash_pos.z, flash_pos_sigma.y,
+            flash_pos.z, flash_pos_sigma.z,
             flash_traj.x, flash_traj_sigma.x,
             flash_traj.y, flash_traj_sigma.y,
             flash_traj.z, flash_traj_sigma.z);
