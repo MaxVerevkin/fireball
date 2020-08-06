@@ -1,37 +1,14 @@
 #include <stdio.h>
 #include <random>
 #include <omp.h>
-
 #include "data.h"
 
-
-///////////////////////
-/// Hyperparameters ///
-///////////////////////
-
-#define RANDOM_FLASH_N 15
-#define RANDOM_TRAJ_N 15
-#define TRIES_N 5000
-#define MAX_ERROR 6
-
-
-///////////////////////////////////////////
-/// Default range for random estimation ///
-///////////////////////////////////////////
-
-#define x0_default 4000000
-#define y0_default 4000000
-#define z0_default 50000
-
-#define kx_default 0
-#define ky_default 0
-#define kz_default 20000
+#include "hyperparams.h"
 
 
 /////////////////
 /// Functions ///
 /////////////////
-
 
 /*
  * Run one epoch of guessing.
@@ -125,7 +102,7 @@ int main() {
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
-        data.eliminate_inconsistent_flash_data(flash_pos, MAX_ERROR);
+        data.eliminate_inconsistent_flash_data(flash_pos);
     }
 
 
@@ -145,7 +122,7 @@ int main() {
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        data.eliminate_inconsistent_traj_data(flash_pos, flash_traj, MAX_ERROR);
+        data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
     }
 
     printf("\nSummary on finding flash trajectory:\n");

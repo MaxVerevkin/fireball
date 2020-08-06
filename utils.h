@@ -24,7 +24,7 @@ __m128d angle_delta_sq_pd(double *addr1, double *addr2);
 double azimuth(double x, double y);
 
 // Calculre the altitude for a 3D point (x,y,z).
-double altitude(double x, double y, double z);
+double altitude(const vec3d_t &point);
 
 // Calculate the disent angle for the begining of the path.
 double desent_angle(double h, double z, double h0, double z0);

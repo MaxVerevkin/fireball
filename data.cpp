@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "simd.h"
 
+#include "hyperparams.h"
 
 data_t::data_t() {
 
@@ -104,11 +105,11 @@ data_t::data_t() {
  * Sets K=0 to all data which square-error is
  * max_error_k times greater than mean square-error
  */
-void data_t::eliminate_inconsistent_flash_data(const vec3d_t &pos, double max_error_k) {
+void data_t::eliminate_inconsistent_flash_data(const vec3d_t &pos) {
     k_count = 0;
 
     double mean_error = rate_flash_pos(pos, ex_data) / (data_N * 2);
-    double max_error = mean_error * max_error_k;
+    double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
         k_z0[i] = !(pow(angle_delta(ex_data.z0[i], ob_z0[i]), 2) > max_error);
@@ -118,11 +119,11 @@ void data_t::eliminate_inconsistent_flash_data(const vec3d_t &pos, double max_er
         k_count += !k_h0[i];
     }
 }
-void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_t params, double max_error_k) {
+void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_t params) {
     k_count = 0;
 
     double mean_error = rate_flash_traj(flash, params, ex_data) / (data_N * 3);
-    double max_error = mean_error * max_error_k;
+    double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
         k_zb[i] = !(pow(angle_delta(ex_data.zb[i], ob_zb[i]), 2) > max_error);
@@ -246,45 +247,69 @@ vec3d_t data_t::sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params, pr
 void data_t::process_flash_pos(const vec3d_t &pos, processed_answer &dest) {
     for (int i = 0; i < data_N; i++) {
         // Relative position of flash
-        double x0i = pos.x - pos_2d[i].x;
-        double y0i = pos.y - pos_2d[i].y;
-        double z0i = pos.z - ob_height[i];
+        vec3d_t rel_flash;
+        rel_flash.x = pos.x - pos_2d[i].x;
+        rel_flash.y = pos.y - pos_2d[i].y;
+        rel_flash.z = pos.z - ob_height[i];
 
         // Azimuth and altitude of flash
-        dest.z0[i] = azimuth(x0i, y0i);
-        dest.h0[i] = altitude(x0i, y0i, z0i);
+        dest.z0[i] = azimuth(rel_flash.x, rel_flash.y);
+        dest.h0[i] = altitude(rel_flash);
     }
 }
+
+double data_t::traj_error(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, double best_error, processed_answer &dest) {
+    // Relative begining position
+    vec3d_t rel_begin;
+    rel_begin.x = rel_flash.x + params.x*t;
+    rel_begin.y = rel_flash.y + params.y*t;
+    rel_begin.z = rel_flash.z + params.z*t;
+    // Azimuth and altitude of the begining
+    double zbi = azimuth(rel_begin.x, rel_begin.y);
+    double hbi = altitude(rel_begin);
+    // Desent angle
+    double ai = desent_angle(hbi, zbi, dest.h0[i], dest.z0[i]);
+
+    // Error
+    double error = 0;
+    error += pow(angle_delta(zbi, ob_zb[i]), 2) * k_zb[i];
+    error += pow(angle_delta(hbi, ob_hb[i]), 2) * k_hb[i];
+    error += pow(angle_delta(ai, ob_a[i]), 2) * k_a[i];
+
+     if (error < best_error) {
+         dest.zb[i] = zbi;
+         dest.hb[i] = hbi;
+         dest.a[i] = ai;
+         dest.t[i] = t;
+     }
+
+
+    return error;
+}
+
 void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest) {
     for (int i = 0; i < data_N; i++) {
         // Relative position of flash
-        double x0i = flash.x - pos_2d[i].x;
-        double y0i = flash.y - pos_2d[i].y;
-        double z0i = flash.z - ob_height[i];
+        vec3d_t rel_flash;
+        rel_flash.x = flash.x - pos_2d[i].x;
+        rel_flash.y = flash.y - pos_2d[i].y;
+        rel_flash.z = flash.z - ob_height[i];
 
-        double best_error = INFINITY;
-        for (double t = 1; t <= 4; t += .1) {
-            // Relative begining position
-            double c_xbi = x0i + params.x*t;
-            double c_ybi = y0i + params.y*t;
-            double c_zbi = z0i + params.z*t;
-            // Azimuth and altitude of the begining
-            double zbi = azimuth(c_xbi, c_ybi);
-            double hbi = altitude(c_xbi, c_ybi, c_zbi);
-            // Desent angle
-            double ai = desent_angle(hbi, zbi, dest.h0[i], dest.z0[i]);
-
-            // Error
-            double error = 0;
-            error += pow(angle_delta(zbi, ob_zb[i]), 2) * k_zb[i];
-            error += pow(angle_delta(hbi, ob_hb[i]), 2) * k_hb[i];
-            error += pow(angle_delta(ai, ob_a[i]), 2) * k_a[i];
-            if (error < best_error) {
-                best_error = error;
-                dest.zb[i] = zbi;
-                dest.hb[i] = hbi;
-                dest.a[i] = ai;
-                dest.t[i] = t;
+        double min = 0;
+        double max = 1;
+        double t = .5;
+        double best_error = traj_error(rel_flash, params, t, i, INFINITY, dest);
+        for (int j = 0; j < T_DEPTH; j++) {
+            double e1 = traj_error(rel_flash, params, t-.0001, i, best_error, dest);
+            double e2 = traj_error(rel_flash, params, t+.0001, i, best_error, dest);
+            if (e1 < e2) {
+                max = t;
+                t = (min + t) / 2;
+                best_error = e1;
+            } else {
+                min = t;
+                t = (t + max) / 2;
+                best_error = e2;
             }
         }
     }

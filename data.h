@@ -59,8 +59,8 @@ struct data_t {
      * Sets K=0 to all data which square-error is
      * max_error_k times greater than mean square-error
      */
-    void eliminate_inconsistent_flash_data(const vec3d_t &pos, double max_error_k);
-    void eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_t params, double max_error_k);
+    void eliminate_inconsistent_flash_data(const vec3d_t &pos);
+    void eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_t params);
 
 
     /*
@@ -80,6 +80,7 @@ struct data_t {
     /*
      * Fills in the 'expected' values.
      */
+    double traj_error(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, double best_error, processed_answer &dest);
     void process_flash_pos(const vec3d_t &pos, processed_answer &dest);
     void process_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest);
 };

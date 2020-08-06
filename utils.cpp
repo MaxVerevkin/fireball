@@ -63,10 +63,10 @@ double azimuth(double x, double y) {
 
 
 // Calculre the altitude for a 3D point (x,y,z).
-double altitude(double x, double y, double z) {
-    if (x == 0 and y == 0)
+double altitude(const vec3d_t &point) {
+    if (point.x == 0 and point.y == 0)
         return PI/2;
-    return atan(z / sqrt(x*x + y*y));
+    return atan(point.z / sqrt(point.x*point.x + point.y*point.y));
 }
 
 
