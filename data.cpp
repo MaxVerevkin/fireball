@@ -190,6 +190,26 @@ double data_t::rate_flash_traj(const vec3d_t &flash, const vec3d_t &params, proc
     _mm_storeu_pd(x, error);
     return x[0] + x[1];
 }
+vec3d_t data_t::sigma_flash_pos(const vec3d_t &pos) {
+    double sigma_x = 0;
+    double sigma_y = 0;
+    double sigma_z = 0;
+    for (int i = 0; i < data_N; i++) {
+        double x_rel = pos.x - pos_2d[i].x;
+        double y_rel = pos.y - pos_2d[i].y;
+        double z_rel = pos.z - ob_height[i];
+        double tan_z0 = tan(ob_z0[i]);
+        sigma_x += pow(y_rel * tan_z0 - x_rel, 2) * k_z0[i];
+        sigma_y += pow(x_rel / tan_z0 - y_rel, 2) * k_z0[i];
+        sigma_z += pow(sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_h0[i]) - z_rel, 2) * k_h0[i];
+    }
+
+    sigma_x /= data_N * (data_N - 1);
+    sigma_y /= data_N * (data_N - 1);
+    sigma_z /= data_N * (data_N - 1);
+
+    return vec3d_t {sqrt(sigma_x), sqrt(sigma_y), sqrt(sigma_z)};
+}
 
 
 /*

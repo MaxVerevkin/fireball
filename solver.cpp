@@ -9,7 +9,7 @@
 /// Hyperparameters ///
 ///////////////////////
 
-#define RANDOM_FLASH_N 20
+#define RANDOM_FLASH_N 15
 #define RANDOM_TRAJ_N 20
 #define TRIES_N 4000
 #define MAX_ERROR 6
@@ -24,14 +24,9 @@
 /// Default range for random estimation ///
 ///////////////////////////////////////////
 
-double x0_r_mean = 4000000.;
-double x0_r_ampl = 500000.;
-
-double y0_r_mean = 4000000.;
-double y0_r_ampl = 500000.;
-
-double z0_r_mean = 50000.;
-double z0_r_ampl = 50000.;
+double x0_default = 4000000.;
+double y0_default = 4000000.;
+double z0_default = 50000.;
 
 double kx_r_mean = 0.;
 double kx_r_ampl = 72000.;
@@ -56,17 +51,6 @@ double kz_r_ampl = 36000.;
  *      between old mean and current answer, i.e.:
  *          new_mean=lerp(mean,answer,RANDOM_ALPHA_MEAN)
  */
-void update_flash_range(const vec3d_t &pos) {
-    // Calculate new mean
-    x0_r_mean = lerp(x0_r_mean, pos.x, FLASH_ALPHA_MEAN);
-    y0_r_mean = lerp(y0_r_mean, pos.y, FLASH_ALPHA_MEAN);
-    z0_r_mean = lerp(z0_r_mean, pos.z, FLASH_ALPHA_MEAN);
-
-    // Calculate new amplitude
-    x0_r_ampl *= FLASH_AMPL_MUL;
-    y0_r_ampl *= FLASH_AMPL_MUL;
-    z0_r_ampl *= FLASH_AMPL_MUL;
-}
 void update_traj_range(const vec3d_t &traj) {
     // Calculate new mean
     kx_r_mean = lerp(kx_r_mean, traj.x, TRAJ_ALPHA_MEAN);
@@ -87,6 +71,7 @@ void update_traj_range(const vec3d_t &traj) {
 std::random_device r;
 std::uniform_real_distribution<> dist(-1, 1);
 void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_error) {
+    vec3d_t sigma = data.sigma_flash_pos(best_pos);
     #pragma omp parallel
     {
         std::mt19937 e2(r()*(omp_get_thread_num()+878));
@@ -97,9 +82,9 @@ void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_err
 
         vec3d_t pos;
         for (int i = 0; i < TRIES_N; i++) {
-            pos.x = x0_r_mean + x0_r_ampl * dist(e2);
-            pos.y = y0_r_mean + y0_r_ampl * dist(e2);
-            pos.z = z0_r_mean + z0_r_ampl * dist(e2);
+            pos.x = best_pos.x + sigma.x * dist(e2) * 3;
+            pos.y = best_pos.y + sigma.y * dist(e2) * 3;
+            pos.z = best_pos.z + sigma.z * dist(e2) * 3;
             
             double error = data.rate_flash_pos(pos, proc_ans);
             if (error < local_best_error) {
@@ -155,7 +140,7 @@ int main() {
     data_t data;
     printf("Data is initialized\n");
 
-    vec3d_t flash_pos;
+    vec3d_t flash_pos = {x0_default, y0_default, z0_default};
     vec3d_t flash_traj;
     double flash_error = INFINITY;
     double traj_error = INFINITY;
@@ -167,17 +152,13 @@ int main() {
 
     for (int i = 0; i+4 < RANDOM_FLASH_N; i+=5) {
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
-        update_flash_range(flash_pos);
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
-        update_flash_range(flash_pos);
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
-        update_flash_range(flash_pos);
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
-        update_flash_range(flash_pos);
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
-        update_flash_range(flash_pos);
         data.eliminate_inconsistent_flash_data(flash_pos, MAX_ERROR);
     }
+
 
     printf("\nSummary on finding flash position:\n");
     printf("    Total square-error (rad): %#9.6f\n", flash_error);
@@ -211,8 +192,12 @@ int main() {
 
 
     // Print answer
-    printf("\nAnswer: %#9.0f %#9.0f %#9.0f %#9.0f %#9.0f %#9.0f\n",
-            flash_pos.x, flash_pos.y, flash_pos.z, flash_traj.x, flash_traj.y, flash_traj.z);
+    vec3d_t flash_pos_sigma = data.sigma_flash_pos(flash_pos);
+    printf("\nAnswer: %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f %9.0f %9.0f %9.0f\n",
+            flash_pos.x, flash_pos_sigma.x,
+            flash_pos.y, flash_pos_sigma.y,
+            flash_pos.z, flash_pos_sigma.y,
+            flash_traj.x, flash_traj.y, flash_traj.z);
 
     // Print processed answer for each observer
     printf("\n                  i     z0        h0        zb        hb         a         T   \n");
