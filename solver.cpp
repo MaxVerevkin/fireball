@@ -110,7 +110,7 @@ int main() {
     printf("Data is initialized\n");
 
     vec3d_t flash_pos = {x0_default, y0_default, z0_default};
-    vec3d_t flash_traj;
+    vec3d_t flash_traj = {kx_default, ky_default, kz_default};
     double flash_error = INFINITY;
     double traj_error = INFINITY;
 
