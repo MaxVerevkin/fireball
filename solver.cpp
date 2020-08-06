@@ -10,7 +10,7 @@
 ///////////////////////
 
 #define RANDOM_FLASH_N 20
-#define RANDOM_TRAJ_N 100
+#define RANDOM_TRAJ_N 20
 #define TRIES_N 4000
 #define MAX_ERROR 6
 
