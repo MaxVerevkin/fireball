@@ -227,9 +227,9 @@ vec3d_t data_t::sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params, pr
         double y_rel = flash.y - pos_2d[i].y + params.y * dest.t[i];
         double z_rel = flash.z - ob_height[i] + params.z * dest.t[i];
         double tan_zb = tan(ob_zb[i]);
-        sigma_x += pow(y_rel * tan_zb - x_rel, 2) * k_zb[i];
-        sigma_y += pow(x_rel / tan_zb - y_rel, 2) * k_zb[i];
-        sigma_z += pow(sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_hb[i]) - z_rel, 2) * k_hb[i];
+        sigma_x += pow((y_rel * tan_zb - x_rel) / dest.t[i], 2) * k_zb[i];
+        sigma_y += pow((x_rel / tan_zb - y_rel) / dest.t[i], 2) * k_zb[i];
+        sigma_z += pow((sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_hb[i]) - z_rel) / dest.t[i], 2) * k_hb[i];
     }
 
     sigma_x /= data_N * (data_N - 1);
