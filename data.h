@@ -68,7 +68,13 @@ struct data_t {
      */
     double rate_flash_pos(const vec3d_t &pos, processed_answer &dest);
     double rate_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest);
+
+    /*
+     * Return sigma (standard deviation)
+     * of a given answer.
+     */
     vec3d_t sigma_flash_pos(const vec3d_t &pos);
+    vec3d_t sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest);
 
 
     /*

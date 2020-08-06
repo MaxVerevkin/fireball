@@ -10,66 +10,34 @@
 ///////////////////////
 
 #define RANDOM_FLASH_N 15
-#define RANDOM_TRAJ_N 20
-#define TRIES_N 4000
+#define RANDOM_TRAJ_N 15
+#define TRIES_N 5000
 #define MAX_ERROR 6
-
-#define FLASH_AMPL_MUL (1. / 1.45) // from 1 to inf
-#define FLASH_ALPHA_MEAN 1        // from 0 to 1
-#define TRAJ_AMPL_MUL (1. / 1.03) // from 1 to inf
-#define TRAJ_ALPHA_MEAN 1        // from 0 to 1
 
 
 ///////////////////////////////////////////
 /// Default range for random estimation ///
 ///////////////////////////////////////////
 
-double x0_default = 4000000.;
-double y0_default = 4000000.;
-double z0_default = 50000.;
+#define x0_default 4000000
+#define y0_default 4000000
+#define z0_default 50000
 
-double kx_r_mean = 0.;
-double kx_r_ampl = 72000.;
-
-double ky_r_mean = 0.;
-double ky_r_ampl = 72000.;
-
-double kz_r_mean = 36000.;
-double kz_r_ampl = 36000.;
+#define kx_default 0
+#define ky_default 0
+#define kz_default 20000
 
 
 /////////////////
 /// Functions ///
 /////////////////
 
-/*
- * Update range of the answer, given current best answer.
- *
- * New range will satisfy those constraints:
- *      1) Amplitude of the range will be multiplied by RANDOM_AMPL_MUL.
- *      2) New mean will be in linearly interpolated
- *      between old mean and current answer, i.e.:
- *          new_mean=lerp(mean,answer,RANDOM_ALPHA_MEAN)
- */
-void update_traj_range(const vec3d_t &traj) {
-    // Calculate new mean
-    kx_r_mean = lerp(kx_r_mean, traj.x, TRAJ_ALPHA_MEAN);
-    ky_r_mean = lerp(ky_r_mean, traj.y, TRAJ_ALPHA_MEAN);
-    kz_r_mean = lerp(kz_r_mean, traj.z, TRAJ_ALPHA_MEAN);
-
-    // Calculate new amplitude
-    kx_r_ampl *= TRAJ_AMPL_MUL;
-    ky_r_ampl *= TRAJ_AMPL_MUL;
-    kz_r_ampl *= TRAJ_AMPL_MUL;
-}
-
-
 
 /*
  * Run one epoch of guessing.
  */
 std::random_device r;
-std::uniform_real_distribution<> dist(-1, 1);
+std::uniform_real_distribution<> dist(-3, 3);
 void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_error) {
     vec3d_t sigma = data.sigma_flash_pos(best_pos);
     #pragma omp parallel
@@ -82,9 +50,9 @@ void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_err
 
         vec3d_t pos;
         for (int i = 0; i < TRIES_N; i++) {
-            pos.x = best_pos.x + sigma.x * dist(e2) * 3;
-            pos.y = best_pos.y + sigma.y * dist(e2) * 3;
-            pos.z = best_pos.z + sigma.z * dist(e2) * 3;
+            pos.x = best_pos.x + sigma.x * dist(e2);
+            pos.y = best_pos.y + sigma.y * dist(e2);
+            pos.z = best_pos.z + sigma.z * dist(e2);
             
             double error = data.rate_flash_pos(pos, proc_ans);
             if (error < local_best_error) {
@@ -102,6 +70,7 @@ void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_err
     }
 }
 void run_random_epoch_on_traj(data_t &data, const vec3d_t &flash, vec3d_t &best_traj, double *best_error) {
+    vec3d_t sigma = data.sigma_flash_traj(flash, best_traj, data.ex_data);
     #pragma omp parallel
     {
         std::mt19937 e2(r()*(omp_get_thread_num()+878));
@@ -112,9 +81,9 @@ void run_random_epoch_on_traj(data_t &data, const vec3d_t &flash, vec3d_t &best_
 
         vec3d_t traj;
         for (int i = 0; i < TRIES_N; i++) {
-            traj.x = kx_r_mean + kx_r_ampl * dist(e2);
-            traj.y = ky_r_mean + ky_r_ampl * dist(e2);
-            traj.z = kz_r_mean + kz_r_ampl * dist(e2);
+            traj.x = best_traj.x + sigma.x * dist(e2);
+            traj.y = best_traj.y + sigma.y * dist(e2);
+            traj.z = best_traj.z + sigma.z * dist(e2);
             
             double error = data.rate_flash_traj(flash, traj, proc_ans);
             if (error < local_best_error) {
@@ -172,15 +141,10 @@ int main() {
 
     for (int i = 0; i+4 < RANDOM_TRAJ_N; i+=5) {
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        update_traj_range(flash_traj);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        update_traj_range(flash_traj);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        update_traj_range(flash_traj);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        update_traj_range(flash_traj);
         run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        update_traj_range(flash_traj);
         data.eliminate_inconsistent_traj_data(flash_pos, flash_traj, MAX_ERROR);
     }
 
@@ -193,11 +157,14 @@ int main() {
 
     // Print answer
     vec3d_t flash_pos_sigma = data.sigma_flash_pos(flash_pos);
-    printf("\nAnswer: %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f %9.0f %9.0f %9.0f\n",
+    vec3d_t flash_traj_sigma = data.sigma_flash_traj(flash_pos, flash_traj, data.ex_data);
+    printf("\nAnswer: %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f %9.0f±%4.0f\n",
             flash_pos.x, flash_pos_sigma.x,
             flash_pos.y, flash_pos_sigma.y,
             flash_pos.z, flash_pos_sigma.y,
-            flash_traj.x, flash_traj.y, flash_traj.z);
+            flash_traj.x, flash_traj_sigma.x,
+            flash_traj.y, flash_traj_sigma.y,
+            flash_traj.z, flash_traj_sigma.z);
 
     // Print processed answer for each observer
     printf("\n                  i     z0        h0        zb        hb         a         T   \n");

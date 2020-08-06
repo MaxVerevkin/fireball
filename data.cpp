@@ -190,6 +190,12 @@ double data_t::rate_flash_traj(const vec3d_t &flash, const vec3d_t &params, proc
     _mm_storeu_pd(x, error);
     return x[0] + x[1];
 }
+
+
+/*
+ * Return sigma (standard deviation)
+ * of a given answer.
+ */
 vec3d_t data_t::sigma_flash_pos(const vec3d_t &pos) {
     double sigma_x = 0;
     double sigma_y = 0;
@@ -202,6 +208,28 @@ vec3d_t data_t::sigma_flash_pos(const vec3d_t &pos) {
         sigma_x += pow(y_rel * tan_z0 - x_rel, 2) * k_z0[i];
         sigma_y += pow(x_rel / tan_z0 - y_rel, 2) * k_z0[i];
         sigma_z += pow(sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_h0[i]) - z_rel, 2) * k_h0[i];
+    }
+
+    sigma_x /= data_N * (data_N - 1);
+    sigma_y /= data_N * (data_N - 1);
+    sigma_z /= data_N * (data_N - 1);
+
+    return vec3d_t {sqrt(sigma_x), sqrt(sigma_y), sqrt(sigma_z)};
+}
+vec3d_t data_t::sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest) {
+    process_flash_traj(flash, params, dest);
+
+    double sigma_x = 0;
+    double sigma_y = 0;
+    double sigma_z = 0;
+    for (int i = 0; i < data_N; i++) {
+        double x_rel = flash.x - pos_2d[i].x + params.x * dest.t[i];
+        double y_rel = flash.y - pos_2d[i].y + params.y * dest.t[i];
+        double z_rel = flash.z - ob_height[i] + params.z * dest.t[i];
+        double tan_zb = tan(ob_zb[i]);
+        sigma_x += pow(y_rel * tan_zb - x_rel, 2) * k_zb[i];
+        sigma_y += pow(x_rel / tan_zb - y_rel, 2) * k_zb[i];
+        sigma_z += pow(sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_hb[i]) - z_rel, 2) * k_hb[i];
     }
 
     sigma_x /= data_N * (data_N - 1);
