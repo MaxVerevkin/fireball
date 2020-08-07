@@ -7,10 +7,12 @@
 #define HYPERPARAMS_H
 
 
+// Divisible by 5
 #define RANDOM_FLASH_N 15
-#define RANDOM_TRAJ_N 25
+#define RANDOM_TRAJ_N 30
+
 #define TRIES_N 5000
-#define MAX_ERROR 6
+#define MAX_ERROR 6.3
 #define T_DEPTH 8
 
 #define x0_default 4000000

@@ -28,26 +28,29 @@ struct processed_answer {
 struct data_t {
 
     // Observer's data
-    alignas(16) double *ob_lat;
-    alignas(16) double *ob_lon;
-    alignas(16) double *ob_height;
-    alignas(16) double *ob_z0;
-    alignas(16) double *ob_h0;
-    alignas(16) double *ob_zb;
-    alignas(16) double *ob_hb;
-    alignas(16) double *ob_a;
+    alignas(16) double *ob_lat;    // Latitude
+    alignas(16) double *ob_lon;    // Longitude
+    alignas(16) double *ob_height; // Height
+    alignas(16) double *ob_z0;     // Azimuth end
+    alignas(16) double *ob_h0;     // Altitude end
+    alignas(16) double *ob_zb;     // Azimuth begin
+    alignas(16) double *ob_hb;     // Altitude begin
+    alignas(16) double *ob_a;      // Desent angle
+    alignas(16) double *ob_e;      // Experience
 
     // Observer's expected data given some answer
     processed_answer ex_data;
 
     // Additional variables
     int k_count = 0;
+    int data_Ne = 0;
+    alignas(16) vec2d_t pos_2d[data_N];
+    // Used to ignore inconsistent data
     alignas(16) double k_z0[data_N];
     alignas(16) double k_h0[data_N];
     alignas(16) double k_zb[data_N];
     alignas(16) double k_hb[data_N];
     alignas(16) double k_a[data_N];
-    alignas(16) vec2d_t pos_2d[data_N];
 
     /*
      * Initialize the data

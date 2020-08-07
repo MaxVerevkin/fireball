@@ -108,8 +108,8 @@ int main() {
 
     printf("\nSummary on finding flash position:\n");
     printf("    Total square-error (rad): %#9.6f\n", flash_error);
-    printf("    Mean square-error  (rad): %#9.6f\n", flash_error / (data_N * 2 - data.k_count));
-    printf("    Standard error     (deg): %#9.6f\n", sqrt(flash_error / (data_N * 2 - data.k_count))/PI*180);
+    printf("    Mean square-error  (rad): %#9.6f\n", flash_error / (data.data_Ne * 2 - data.k_count));
+    printf("    Standard error     (deg): %#9.6f\n", sqrt(flash_error / (data.data_Ne * 2 - data.k_count))/PI*180);
 
 
     /////////////////////////////
@@ -127,8 +127,8 @@ int main() {
 
     printf("\nSummary on finding flash trajectory:\n");
     printf("    Total square-error (rad): %#9.6f\n", traj_error);
-    printf("    Mean square-error  (rad): %#9.6f\n", traj_error / (data_N * 3 - data.k_count));
-    printf("    Standard error     (deg): %#9.6f\n", sqrt(traj_error / (data_N * 3 - data.k_count))/PI*180);
+    printf("    Mean square-error  (rad): %#9.6f\n", traj_error / (data.data_Ne * 3 - data.k_count));
+    printf("    Standard error     (deg): %#9.6f\n", sqrt(traj_error / (data.data_Ne * 3 - data.k_count))/PI*180);
 
 
 

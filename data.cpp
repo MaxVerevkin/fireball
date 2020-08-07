@@ -79,10 +79,17 @@ data_t::data_t() {
         14,
         17
     };
+    ob_e = new double[data_N] {
+        1, 1, 1, 1, 1, 1
+    };
 
 
     // Prepreocess
     for (int i = 0; i < data_N; i++) {
+        // data_Ne is a sum of all ob_e
+        data_Ne += ob_e[i];
+
+        // Initialize K=1
         k_z0[i] = 1;
         k_h0[i] = 1;
         k_zb[i] = 1;
@@ -91,6 +98,7 @@ data_t::data_t() {
 
         // Fill in pos_x and pos_y
         pos_2d[i] = geo_to_xy(ob_lat[i]*PI/180, ob_lon[i]*PI/180);
+
         // Translate
         ob_z0[i] *= PI / 180;
         ob_h0[i] *= PI / 180;
@@ -108,7 +116,7 @@ data_t::data_t() {
 void data_t::eliminate_inconsistent_flash_data(const vec3d_t &pos) {
     k_count = 0;
 
-    double mean_error = rate_flash_pos(pos, ex_data) / (data_N * 2);
+    double mean_error = rate_flash_pos(pos, ex_data) / (data_Ne * 2);
     double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
@@ -122,7 +130,7 @@ void data_t::eliminate_inconsistent_flash_data(const vec3d_t &pos) {
 void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_t params) {
     k_count = 0;
 
-    double mean_error = rate_flash_traj(flash, params, ex_data) / (data_N * 3);
+    double mean_error = rate_flash_traj(flash, params, ex_data) / (data_Ne * 3);
     double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
@@ -148,13 +156,17 @@ double data_t::rate_flash_pos(const vec3d_t &pos, processed_answer &dest) {
     __m128d K;
 
     for (int i = 0; i+1 < data_N; i+=2) {
-        err = angle_delta_sq_pd(ob_z0 + i, dest.z0 + i);
-        K = _mm_load_pd(k_z0 + i);
-        err = _mm_mul_pd(err, K);
-        error = _mm_add_pd(error, err);
+        err = angle_delta_sq_pd(ob_z0 + i, dest.z0 + i); // err = sq_delta(ob_z0, dest.z0)
+        K = _mm_load_pd(k_z0 + i);                       // K = k_z0
+        err = _mm_mul_pd(err, K);                        // err *= K
+        K = _mm_load_pd(ob_e + i);                       // K = ob_e
+        err = _mm_mul_pd(err, K);                        // err *= K
+        error = _mm_add_pd(error, err);                  // error += err
 
         err = angle_delta_sq_pd(ob_h0 + i, dest.h0 + i);
         K = _mm_load_pd(k_h0 + i);
+        err = _mm_mul_pd(err, K);
+        K = _mm_load_pd(ob_e + i);
         err = _mm_mul_pd(err, K);
         error = _mm_add_pd(error, err);
     }
@@ -174,15 +186,21 @@ double data_t::rate_flash_traj(const vec3d_t &flash, const vec3d_t &params, proc
         err = angle_delta_sq_pd(ob_zb + i, dest.zb + i);
         K = _mm_load_pd(k_zb + i);
         err = _mm_mul_pd(err, K);
+        K = _mm_load_pd(ob_e + i);
+        err = _mm_mul_pd(err, K);
         error = _mm_add_pd(error, err);
 
         err = angle_delta_sq_pd(ob_hb + i, dest.hb + i);
         K = _mm_load_pd(k_hb + i);
         err = _mm_mul_pd(err, K);
+        K = _mm_load_pd(ob_e + i);
+        err = _mm_mul_pd(err, K);
         error = _mm_add_pd(error, err);
 
         err = angle_delta_sq_pd(ob_a + i, dest.a + i);
         K = _mm_load_pd(k_a + i);
+        err = _mm_mul_pd(err, K);
+        K = _mm_load_pd(ob_e + i);
         err = _mm_mul_pd(err, K);
         error = _mm_add_pd(error, err);
     }
@@ -206,14 +224,14 @@ vec3d_t data_t::sigma_flash_pos(const vec3d_t &pos) {
         double y_rel = pos.y - pos_2d[i].y;
         double z_rel = pos.z - ob_height[i];
         double tan_z0 = tan(ob_z0[i]);
-        sigma_x += pow(y_rel * tan_z0 - x_rel, 2) * k_z0[i];
-        sigma_y += pow(x_rel / tan_z0 - y_rel, 2) * k_z0[i];
-        sigma_z += pow(sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_h0[i]) - z_rel, 2) * k_h0[i];
+        sigma_x += pow(y_rel * tan_z0 - x_rel, 2) * k_z0[i] * ob_e[i];
+        sigma_y += pow(x_rel / tan_z0 - y_rel, 2) * k_z0[i] * ob_e[i];
+        sigma_z += pow(sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_h0[i]) - z_rel, 2) * k_h0[i] * ob_e[i];
     }
 
-    sigma_x /= data_N * (data_N - 1);
-    sigma_y /= data_N * (data_N - 1);
-    sigma_z /= data_N * (data_N - 1);
+    sigma_x /= data_N * (data_Ne - 1);
+    sigma_y /= data_N * (data_Ne - 1);
+    sigma_z /= data_N * (data_Ne - 1);
 
     return vec3d_t {sqrt(sigma_x), sqrt(sigma_y), sqrt(sigma_z)};
 }
@@ -228,9 +246,9 @@ vec3d_t data_t::sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params, pr
         double y_rel = flash.y - pos_2d[i].y + params.y * dest.t[i];
         double z_rel = flash.z - ob_height[i] + params.z * dest.t[i];
         double tan_zb = tan(ob_zb[i]);
-        sigma_x += pow((y_rel * tan_zb - x_rel) / dest.t[i], 2) * k_zb[i];
-        sigma_y += pow((x_rel / tan_zb - y_rel) / dest.t[i], 2) * k_zb[i];
-        sigma_z += pow((sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_hb[i]) - z_rel) / dest.t[i], 2) * k_hb[i];
+        sigma_x += pow((y_rel * tan_zb - x_rel) / dest.t[i], 2) * k_zb[i] * ob_e[i];
+        sigma_y += pow((x_rel / tan_zb - y_rel) / dest.t[i], 2) * k_zb[i] * ob_e[i];
+        sigma_z += pow((sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_hb[i]) - z_rel) / dest.t[i], 2) * k_hb[i] * ob_e[i];
     }
 
     sigma_x /= data_N * (data_N - 1);
@@ -272,9 +290,9 @@ double data_t::traj_error(const vec3d_t &rel_flash, const vec3d_t params, double
 
     // Error
     double error = 0;
-    error += pow(angle_delta(zbi, ob_zb[i]), 2) * k_zb[i];
-    error += pow(angle_delta(hbi, ob_hb[i]), 2) * k_hb[i];
-    error += pow(angle_delta(ai, ob_a[i]), 2) * k_a[i];
+    error += pow(angle_delta(zbi, ob_zb[i]), 2) * k_zb[i] * ob_e[i];
+    error += pow(angle_delta(hbi, ob_hb[i]), 2) * k_hb[i] * ob_e[i];
+    error += pow(angle_delta(ai, ob_a[i]), 2) * k_a[i] * ob_e[i];
 
      if (error < best_error) {
          dest.zb[i] = zbi;
@@ -295,9 +313,9 @@ void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, pro
         rel_flash.y = flash.y - pos_2d[i].y;
         rel_flash.z = flash.z - ob_height[i];
 
-        double min = 0;
-        double max = 1;
-        double t = .5;
+        double min = 1;
+        double max = 4;
+        double t = 2.5;
         double best_error = traj_error(rel_flash, params, t, i, INFINITY, dest);
         for (int j = 0; j < T_DEPTH; j++) {
             double e1 = traj_error(rel_flash, params, t-.0001, i, best_error, dest);
