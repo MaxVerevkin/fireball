@@ -1,5 +1,6 @@
 #include "data.h"
 
+#include <ifstream>
 #include "utils.h"
 #include "simd.h"
 
@@ -115,6 +116,10 @@ data_t::data_t() {
  */
 void data_t::eliminate_inconsistent_flash_data(const vec3d_t &pos) {
     k_count = 0;
+    for (int i = 0; i < data_N; i++) {
+        k_z0[i] = 1;
+        k_h0[i] = 1;
+    }
 
     double mean_error = rate_flash_pos(pos, ex_data) / (data_Ne * 2);
     double max_error = mean_error * MAX_ERROR;
@@ -123,12 +128,17 @@ void data_t::eliminate_inconsistent_flash_data(const vec3d_t &pos) {
         k_z0[i] = !(pow(angle_delta(ex_data.z0[i], ob_z0[i]), 2) > max_error);
         k_h0[i] = !(pow(angle_delta(ex_data.h0[i], ob_h0[i]), 2) > max_error);
 
-        k_count += !k_z0[i];
-        k_count += !k_h0[i];
+        k_count += !k_z0[i] * ob_e[i];
+        k_count += !k_h0[i] * ob_e[i];
     }
 }
 void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_t params) {
     k_count = 0;
+    for (int i = 0; i < data_N; i++) {
+        k_zb[i] = 1;
+        k_hb[i] = 1;
+        k_a[i] = 1;
+    }
 
     double mean_error = rate_flash_traj(flash, params, ex_data) / (data_Ne * 3);
     double max_error = mean_error * MAX_ERROR;
@@ -138,9 +148,9 @@ void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_
         k_hb[i] = !(pow(angle_delta(ex_data.hb[i], ob_hb[i]), 2) > max_error);
         k_a[i] = !(pow(angle_delta(ex_data.a[i], ob_a[i]), 2) > max_error);
 
-        k_count += !k_zb[i];
-        k_count += !k_hb[i];
-        k_count += !k_a[i];
+        k_count += !k_zb[i] * ob_e[i];
+        k_count += !k_hb[i] * ob_e[i];
+        k_count += !k_a[i] * ob_e[i];
     }
 }
 
