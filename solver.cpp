@@ -78,6 +78,24 @@ void run_random_epoch_on_traj(data_t &data, const vec3d_t &flash, vec3d_t &best_
     }
 }
 
+double min_8d(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8) {
+    if (x1 < x2 && x1 < x3 && x1 < x4 && x1 < x5 && x1 < x6 && x1 < x7 && x1 < x8)
+        return x1;
+    if (x2 < x3 && x2 < x4 && x2 < x5 && x2 < x6 && x2 < x7 && x2 < x8)
+        return x2;
+    if (x3 < x4 && x3 < x5 && x3 < x6 && x3 < x7 && x3 < x8)
+        return x3;
+    if (x4 < x5 && x4 < x6 && x4 < x7 && x4 < x8)
+        return x4;
+    if (x5 < x6 && x5 < x7 && x5 < x8)
+        return x5;
+    if (x6 < x7 && x6 < x8)
+        return x6;
+    if (x7 < x8)
+        return x7;
+    return x8;
+}
+
 
 /*
  * main
@@ -86,16 +104,13 @@ int main() {
     data_t data;
     printf("Data is initialized\n");
 
-    vec3d_t flash_pos = {x0_default, y0_default, z0_default};
-    vec3d_t flash_traj = {kx_default, ky_default, kz_default};
-    double flash_error = INFINITY;
-    double traj_error = INFINITY;
-
-
+    
     ///////////////////////////
     /// Find flash position ///
     ///////////////////////////
 
+    vec3d_t flash_pos = {x0_default, y0_default, z0_default};
+    double flash_error = INFINITY;
     for (int i = 0; i+4 < RANDOM_FLASH_N; i+=5) {
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
@@ -104,7 +119,6 @@ int main() {
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
         data.eliminate_inconsistent_flash_data(flash_pos);
     }
-
 
     printf("\nSummary on finding flash position:\n");
     printf("    Total square-error (rad): %#9.6f\n", flash_error);
@@ -116,14 +130,54 @@ int main() {
     /// Find flash trajectory ///
     /////////////////////////////
 
-    for (int i = 0; i+4 < RANDOM_TRAJ_N; i+=5) {
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
+    vec3d_t flash_traj;
+    double traj_error = INFINITY;
+
+    for (int j = 0; j < 2; j++) {
+        vec3d_t min_val {kx_min, ky_min, kz_min};
+        vec3d_t max_val {kx_max, ky_max, kz_max};
+        flash_traj.x = (min_val.x + max_val.x) / 2;
+        flash_traj.y = (min_val.y + max_val.y) / 2;
+        flash_traj.z = (min_val.z + max_val.z) / 2;
+        for (int i = 0; i < 20; i++) {
+            double e1 = data.rate_flash_traj(flash_pos, {flash_traj.x+10,flash_traj.y+10,flash_traj.z+10}, data.ex_data);
+            double e2 = data.rate_flash_traj(flash_pos, {flash_traj.x+10,flash_traj.y+10,flash_traj.z-10}, data.ex_data);
+            double e3 = data.rate_flash_traj(flash_pos, {flash_traj.x+10,flash_traj.y-10,flash_traj.z+10}, data.ex_data);
+            double e4 = data.rate_flash_traj(flash_pos, {flash_traj.x+10,flash_traj.y-10,flash_traj.z-10}, data.ex_data);
+            double e5 = data.rate_flash_traj(flash_pos, {flash_traj.x-10,flash_traj.y+10,flash_traj.z+10}, data.ex_data);
+            double e6 = data.rate_flash_traj(flash_pos, {flash_traj.x-10,flash_traj.y+10,flash_traj.z-10}, data.ex_data);
+            double e7 = data.rate_flash_traj(flash_pos, {flash_traj.x-10,flash_traj.y-10,flash_traj.z+10}, data.ex_data);
+            double e8 = data.rate_flash_traj(flash_pos, {flash_traj.x-10,flash_traj.y-10,flash_traj.z-10}, data.ex_data);
+            double min = min_8d(e1, e2, e3, e4, e5, e6, e7, e8);
+
+            if (min == e1 || min == e2 || min == e3 || min == e4) {
+                min_val.x = flash_traj.x;
+                flash_traj.x = (flash_traj.x + max_val.x) / 2;
+            } else {
+                max_val.x = flash_traj.x;
+                flash_traj.x = (flash_traj.x + min_val.x) / 2;
+            }
+
+            if (min == e1 || min == e2 || min == e5 || min == e6) {
+                min_val.y = flash_traj.y;
+                flash_traj.y = (flash_traj.y + max_val.y) / 2;
+            } else {
+                max_val.y = flash_traj.y;
+                flash_traj.y = (flash_traj.y + min_val.y) / 2;
+            }
+
+            if (min == e1 || min == e3 || min == e5 || min == e7) {
+                min_val.z = flash_traj.z;
+                flash_traj.z = (flash_traj.z + max_val.z) / 2;
+            } else {
+                max_val.z = flash_traj.z;
+                flash_traj.z = (flash_traj.z + min_val.z) / 2;
+            }
+        }
         data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
+        traj_error = data.rate_flash_traj(flash_pos, flash_traj, data.ex_data);
     }
+
 
     printf("\nSummary on finding flash trajectory:\n");
     printf("    Total square-error (rad): %#9.6f\n", traj_error);
