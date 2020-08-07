@@ -1,6 +1,5 @@
 #include "data.h"
 
-#include <ifstream>
 #include "utils.h"
 #include "simd.h"
 

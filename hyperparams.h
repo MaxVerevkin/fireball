@@ -12,7 +12,7 @@
 #define RANDOM_TRAJ_N 30
 
 #define TRIES_N 5000
-#define MAX_ERROR 6.3
+#define MAX_ERROR 6
 #define T_DEPTH 8
 
 #define x0_default 4000000
