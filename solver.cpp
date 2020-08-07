@@ -9,14 +9,14 @@
 /// Hyperparameters ///
 ///////////////////////
 
-#define RANDOM_N 20
-#define DERIV_N 5000
+#define RANDOM_N 40
+#define DERIV_N 10000
 #define TRIES_N 7000
 #define MAX_ERROR 3
 #define DERIV_W 10.
 
-#define RANDOM_AMPL_MUL (1. / 1.45) // from 1 to inf
-#define RANDOM_ALPHA_MEAN .7        // from 0 to 1
+#define RANDOM_AMPL_MUL (1. / 1.35) // from 1 to inf
+#define RANDOM_ALPHA_MEAN 1         // from 0 to 1
 
 
 ///////////////////////////////////////////
@@ -33,13 +33,13 @@ double z0_r_mean = 0.;
 double z0_r_ampl = 2000000.;
 
 double kx_r_mean = 0.;
-double kx_r_ampl = 200000.;
+double kx_r_ampl = 70000.;
 
 double ky_r_mean = 0.;
-double ky_r_ampl = 200000.;
+double ky_r_ampl = 70000.;
 
-double kz_r_mean = 100000.;
-double kz_r_ampl = 100000.;
+double kz_r_mean = 35000.;
+double kz_r_ampl = 35000.;
 
 
 /////////////////
@@ -106,17 +106,17 @@ void update_range(const answer_t &answer) {
     x0_r_mean = lerp(x0_r_mean, answer.x0, RANDOM_ALPHA_MEAN);
     y0_r_mean = lerp(y0_r_mean, answer.y0, RANDOM_ALPHA_MEAN);
     z0_r_mean = lerp(z0_r_mean, answer.z0, RANDOM_ALPHA_MEAN);
-    kx_r_mean = lerp(kx_r_mean, answer.kx, RANDOM_ALPHA_MEAN);
-    ky_r_mean = lerp(ky_r_mean, answer.ky, RANDOM_ALPHA_MEAN);
-    kz_r_mean = lerp(kz_r_mean, answer.kz, RANDOM_ALPHA_MEAN);
+    //kx_r_mean = lerp(kx_r_mean, answer.kx, RANDOM_ALPHA_MEAN);
+    //ky_r_mean = lerp(ky_r_mean, answer.ky, RANDOM_ALPHA_MEAN);
+    //kz_r_mean = lerp(kz_r_mean, answer.kz, RANDOM_ALPHA_MEAN);
 
     // Calculate new amplitude
     x0_r_ampl *= RANDOM_AMPL_MUL;
     y0_r_ampl *= RANDOM_AMPL_MUL;
     z0_r_ampl *= RANDOM_AMPL_MUL;
-    kx_r_ampl *= RANDOM_AMPL_MUL;
-    ky_r_ampl *= RANDOM_AMPL_MUL;
-    kz_r_ampl *= RANDOM_AMPL_MUL;
+    //kx_r_ampl *= RANDOM_AMPL_MUL;
+    //ky_r_ampl *= RANDOM_AMPL_MUL;
+    //kz_r_ampl *= RANDOM_AMPL_MUL;
 }
 
 
@@ -173,15 +173,15 @@ void run_random_epoch(data_t &data, answer_t &best_answer, double *best_error) {
 void run_deriv_epoch(data_t &data, answer_t &answer) {
     //for (int i = 0; i < 10; i++) {
     answer_t answer_deriv = compute_deriv(data, answer);
-    double x = 1000000000;
-    double y = 100000000;
+    double x = 10000000;
+    double y = 1000000;
     //printf("%f, %f, %f, %f, %f\ni", answer_deriv.x0*x, answer_deriv.y0*x, answer_deriv.kx*y, answer_deriv.ky*y, answer_deriv.kz * 6 * 100000);
     answer.x0 -= answer_deriv.x0 * x;
     answer.y0 -= answer_deriv.y0 * x;
     answer.z0 -= answer_deriv.z0 * x;
     answer.kx -= answer_deriv.kx * y;
     answer.ky -= answer_deriv.ky * y;
-    answer.kz -= answer_deriv.kz * 6 * 100000;
+    answer.kz -= answer_deriv.kz * y;
     //}
 }
 
