@@ -83,9 +83,18 @@ struct data_t {
     /*
      * Fills in the 'expected' values.
      */
-    double traj_error(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, double best_error, processed_answer &dest);
     void process_flash_pos(const vec3d_t &pos, processed_answer &dest);
     void process_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest);
+
+    /*
+     * Proceese answer for the trajectory for one observer given 't'.
+     */
+    void process_flash_traj_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, processed_answer &dest);
+
+    /*
+     * Returns square-error the trajectory for current answer given 't'
+     */
+    double traj_error_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, processed_answer &dest);
 };
 
 

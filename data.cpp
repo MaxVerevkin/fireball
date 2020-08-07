@@ -207,36 +207,6 @@ void data_t::process_flash_pos(const vec3d_t &pos, processed_answer &dest) {
         dest.h0[i] = altitude(rel_flash);
     }
 }
-
-double data_t::traj_error(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, double best_error, processed_answer &dest) {
-    // Relative begining position
-    vec3d_t rel_begin;
-    rel_begin.x = rel_flash.x + params.x*t;
-    rel_begin.y = rel_flash.y + params.y*t;
-    rel_begin.z = rel_flash.z + params.z*t;
-    // Azimuth and altitude of the begining
-    double zbi = azimuth(rel_begin.x, rel_begin.y);
-    double hbi = altitude(rel_begin);
-    // Desent angle
-    double ai = desent_angle(hbi, zbi, dest.h0[i], dest.z0[i]);
-
-    // Error
-    double error = 0;
-    error += pow(angle_delta(zbi, ob_zb[i]), 2) * k_zb[i] * ob_e[i];
-    error += pow(angle_delta(hbi, ob_hb[i]), 2) * k_hb[i] * ob_e[i];
-    error += pow(angle_delta(ai, ob_a[i]), 2) * k_a[i] * ob_e[i];
-
-     if (error < best_error) {
-         dest.zb[i] = zbi;
-         dest.hb[i] = hbi;
-         dest.a[i] = ai;
-         dest.t[i] = t;
-     }
-
-
-    return error;
-}
-
 void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest) {
     for (int i = 0; i < data_N; i++) {
         // Relative position of flash
@@ -245,22 +215,52 @@ void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, pro
         rel_flash.y = flash.y - pos_2d[i].y;
         rel_flash.z = flash.z - ob_height[i];
 
+        // Binary search for 't'
         double min = 1;
         double max = 4;
-        double t = 2.5;
-        double best_error = traj_error(rel_flash, params, t, i, INFINITY, dest);
+        dest.t[i] = 2.5;
         for (int j = 0; j < T_SEARCH_DEPTH; j++) {
-            double e1 = traj_error(rel_flash, params, t-.0001, i, best_error, dest);
-            double e2 = traj_error(rel_flash, params, t+.0001, i, best_error, dest);
+            double e1 = traj_error_i(rel_flash, params, dest.t[i]-.0001, i, dest);
+            double e2 = traj_error_i(rel_flash, params, dest.t[i]+.0001, i, dest);
             if (e1 < e2) {
-                max = t;
-                t = (min + t) / 2;
-                best_error = e1;
+                max = dest.t[i];
+                dest.t[i] = (min + dest.t[i]) / 2;
             } else {
-                min = t;
-                t = (t + max) / 2;
-                best_error = e2;
+                min = dest.t[i];
+                dest.t[i] = (dest.t[i] + max) / 2;
             }
         }
+        // Actually process current answer
+        process_flash_traj_i(rel_flash, params, dest.t[i], i, dest);
     }
 }
+
+/*
+ * Proceese answer for the trajectory for one observer given 't'.
+ */
+void data_t::process_flash_traj_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, processed_answer &dest) {
+    // Relative begining position
+    vec3d_t rel_begin;
+    rel_begin.x = rel_flash.x + params.x*t;
+    rel_begin.y = rel_flash.y + params.y*t;
+    rel_begin.z = rel_flash.z + params.z*t;
+    // Azimuth and altitude of the begining
+    dest.zb[i] = azimuth(rel_begin.x, rel_begin.y);
+    dest.hb[i] = altitude(rel_begin);
+    // Desent angle
+    dest.a[i] = desent_angle(dest.hb[i], dest.zb[i], dest.h0[i], dest.z0[i]);
+}
+
+/*
+ * Returns square-error the trajectory for current answer given 't'
+ */
+double data_t::traj_error_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, processed_answer &dest) {
+    process_flash_traj_i(rel_flash, params, t, i, dest);
+    // Error
+    double error = 0;
+    error += pow(angle_delta(dest.zb[i], ob_zb[i]), 2) * k_zb[i] * ob_e[i];
+    error += pow(angle_delta(dest.hb[i], ob_hb[i]), 2) * k_hb[i] * ob_e[i];
+    error += pow(angle_delta(dest.a[i], ob_a[i]), 2) * k_a[i] * ob_e[i];
+    return error;
+}
+
