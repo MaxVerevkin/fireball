@@ -9,9 +9,9 @@
 
 // Divisible by 5
 #define RANDOM_FLASH_N 15
-#define RANDOM_TRAJ_N 35
+#define RANDOM_TRAJ_N 45
 
-#define TRIES_N 6000
+#define TRIES_N 2000
 #define MAX_ERROR 6
 #define T_DEPTH 8
 
