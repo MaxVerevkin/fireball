@@ -1,7 +1,7 @@
 #ifndef DATA_H
 #define DATA_H
 
-# define data_N 6 // Should be divisible be 2
+#include "data_values.h"
 
 #include "utils.h"
 #include "structs.h"
@@ -28,15 +28,15 @@ struct processed_answer {
 struct data_t {
 
     // Observer's data
-    alignas(16) double *ob_lat;    // Latitude
-    alignas(16) double *ob_lon;    // Longitude
-    alignas(16) double *ob_height; // Height
-    alignas(16) double *ob_z0;     // Azimuth end
-    alignas(16) double *ob_h0;     // Altitude end
-    alignas(16) double *ob_zb;     // Azimuth begin
-    alignas(16) double *ob_hb;     // Altitude begin
-    alignas(16) double *ob_a;      // Desent angle
-    alignas(16) double *ob_e;      // Experience
+    alignas(16) double ob_lat[data_N] =    {OB_LAT};    // Latitude
+    alignas(16) double ob_lon[data_N] =    {OB_LON};    // Longitude
+    alignas(16) double ob_height[data_N] = {OB_HEIGHT}; // Height
+    alignas(16) double ob_z0[data_N] =     {OB_Z0};     // Azimuth end
+    alignas(16) double ob_h0[data_N] =     {OB_H0};     // Altitude end
+    alignas(16) double ob_zb[data_N] =     {OB_ZB};     // Azimuth begin
+    alignas(16) double ob_hb[data_N] =     {OB_HB};     // Altitude begin
+    alignas(16) double ob_a[data_N] =      {OB_A};      // Desent angle
+    alignas(16) double ob_e[data_N] =      {OB_E};      // Experience
 
     // Observer's expected data given some answer
     processed_answer ex_data;
