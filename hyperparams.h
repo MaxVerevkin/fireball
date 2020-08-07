@@ -9,11 +9,11 @@
 
 // Divisible by 5
 #define RANDOM_FLASH_N 15
-#define RANDOM_TRAJ_N 45
 
 #define TRIES_N 2000
 #define MAX_ERROR 6
-#define T_DEPTH 8
+#define T_SEARCH_DEPTH 8
+#define TRAJ_SEARCH_DEPTH 15
 
 #define x0_default 4000000
 #define y0_default 4000000

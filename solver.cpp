@@ -46,55 +46,6 @@ void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_err
         }
     }
 }
-void run_random_epoch_on_traj(data_t &data, const vec3d_t &flash, vec3d_t &best_traj, double *best_error) {
-    vec3d_t sigma = data.sigma_flash_traj(flash, best_traj, data.ex_data);
-    #pragma omp parallel
-    {
-        std::mt19937 e2(r()*(omp_get_thread_num()+878));
-
-        processed_answer proc_ans;
-        vec3d_t local_best_traj;
-        double local_best_error = INFINITY;
-
-        vec3d_t traj;
-        for (int i = 0; i < TRIES_N; i++) {
-            traj.x = best_traj.x + sigma.x * dist(e2);
-            traj.y = best_traj.y + sigma.y * dist(e2);
-            traj.z = best_traj.z + sigma.z * dist(e2);
-            
-            double error = data.rate_flash_traj(flash, traj, proc_ans);
-            if (error < local_best_error) {
-                local_best_error = error;
-                local_best_traj = traj;
-            }
-        }
-
-
-        #pragma omp critical
-        if (local_best_error < *best_error) {
-            *best_error = local_best_error;
-            best_traj = local_best_traj;
-        }
-    }
-}
-
-double min_8d(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8) {
-    if (x1 < x2 && x1 < x3 && x1 < x4 && x1 < x5 && x1 < x6 && x1 < x7 && x1 < x8)
-        return x1;
-    if (x2 < x3 && x2 < x4 && x2 < x5 && x2 < x6 && x2 < x7 && x2 < x8)
-        return x2;
-    if (x3 < x4 && x3 < x5 && x3 < x6 && x3 < x7 && x3 < x8)
-        return x3;
-    if (x4 < x5 && x4 < x6 && x4 < x7 && x4 < x8)
-        return x4;
-    if (x5 < x6 && x5 < x7 && x5 < x8)
-        return x5;
-    if (x6 < x7 && x6 < x8)
-        return x6;
-    if (x7 < x8)
-        return x7;
-    return x8;
-}
 
 
 /*
@@ -139,7 +90,7 @@ int main() {
         flash_traj.x = (min_val.x + max_val.x) / 2;
         flash_traj.y = (min_val.y + max_val.y) / 2;
         flash_traj.z = (min_val.z + max_val.z) / 2;
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < TRAJ_SEARCH_DEPTH; i++) {
             double e1 = data.rate_flash_traj(flash_pos, {flash_traj.x+10,flash_traj.y+10,flash_traj.z+10}, data.ex_data);
             double e2 = data.rate_flash_traj(flash_pos, {flash_traj.x+10,flash_traj.y+10,flash_traj.z-10}, data.ex_data);
             double e3 = data.rate_flash_traj(flash_pos, {flash_traj.x+10,flash_traj.y-10,flash_traj.z+10}, data.ex_data);
