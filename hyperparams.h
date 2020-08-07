@@ -12,13 +12,16 @@
 
 #define TRIES_N 2000
 #define MAX_ERROR 6
+
 #define T_SEARCH_DEPTH 8
-#define TRAJ_SEARCH_DEPTH 15
+#define T_SEARCH_MIN 1
+#define T_SEARCH_MAX 7
 
 #define x0_default 4000000
 #define y0_default 4000000
 #define z0_default 50000
 
+#define TRAJ_SEARCH_DEPTH 15
 #define kx_min -70000
 #define kx_max 70000
 #define ky_min -70000

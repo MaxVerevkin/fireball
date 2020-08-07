@@ -216,9 +216,9 @@ void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, pro
         rel_flash.z = flash.z - ob_height[i];
 
         // Binary search for 't'
-        double min = 1;
-        double max = 4;
-        dest.t[i] = 2.5;
+        double min = T_SEARCH_MIN;
+        double max = T_SEARCH_MAX;
+        dest.t[i] = (min+max) / 2;
         for (int j = 0; j < T_SEARCH_DEPTH; j++) {
             double e1 = traj_error_i(rel_flash, params, dest.t[i]-.0001, i, dest);
             double e2 = traj_error_i(rel_flash, params, dest.t[i]+.0001, i, dest);
