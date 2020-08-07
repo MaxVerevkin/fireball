@@ -249,7 +249,7 @@ void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, pro
         double max = 4;
         double t = 2.5;
         double best_error = traj_error(rel_flash, params, t, i, INFINITY, dest);
-        for (int j = 0; j < T_DEPTH; j++) {
+        for (int j = 0; j < T_SEARCH_DEPTH; j++) {
             double e1 = traj_error(rel_flash, params, t-.0001, i, best_error, dest);
             double e2 = traj_error(rel_flash, params, t+.0001, i, best_error, dest);
             if (e1 < e2) {

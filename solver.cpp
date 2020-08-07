@@ -13,13 +13,13 @@
 /*
  * Run one epoch of guessing.
  */
-std::random_device r;
-std::uniform_real_distribution<> dist(-3, 3);
 void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_error) {
+    static std::random_device r;
+    static std::uniform_real_distribution<> dist(-3, 3);
     vec3d_t sigma = data.sigma_flash_pos(best_pos);
     #pragma omp parallel
     {
-        std::mt19937 e2(r()*(omp_get_thread_num()+878));
+        std::mt19937 e2(r()+omp_get_thread_num());
 
         processed_answer proc_ans;
         vec3d_t local_best_pos;
@@ -46,36 +46,54 @@ void run_random_epoch_on_flash(data_t &data, vec3d_t &best_pos, double *best_err
         }
     }
 }
-void run_random_epoch_on_traj(data_t &data, const vec3d_t &flash, vec3d_t &best_traj, double *best_error) {
-    vec3d_t sigma = data.sigma_flash_traj(flash, best_traj, data.ex_data);
-    #pragma omp parallel
-    {
-        std::mt19937 e2(r()*(omp_get_thread_num()+878));
 
-        processed_answer proc_ans;
-        vec3d_t local_best_traj;
-        double local_best_error = INFINITY;
+/*
+ * Run binary-tree search in 3D value-space.
+ */
+vec3d_t btree_traj_search(data_t &data, const vec3d_t &flash) {
+    vec3d_t flash_traj;
+    vec3d_t min_val {kx_min, ky_min, kz_min};
+    vec3d_t max_val {kx_max, ky_max, kz_max};
+    flash_traj.x = (min_val.x + max_val.x) / 2;
+    flash_traj.y = (min_val.y + max_val.y) / 2;
+    flash_traj.z = (min_val.z + max_val.z) / 2;
 
-        vec3d_t traj;
-        for (int i = 0; i < TRIES_N; i++) {
-            traj.x = best_traj.x + sigma.x * dist(e2);
-            traj.y = best_traj.y + sigma.y * dist(e2);
-            traj.z = best_traj.z + sigma.z * dist(e2);
-            
-            double error = data.rate_flash_traj(flash, traj, proc_ans);
-            if (error < local_best_error) {
-                local_best_error = error;
-                local_best_traj = traj;
-            }
+    for (int i = 0; i < TRAJ_SEARCH_DEPTH; i++) {
+        double e1 = data.rate_flash_traj(flash, {flash_traj.x+10,flash_traj.y+10,flash_traj.z+10}, data.ex_data);
+        double e2 = data.rate_flash_traj(flash, {flash_traj.x+10,flash_traj.y+10,flash_traj.z-10}, data.ex_data);
+        double e3 = data.rate_flash_traj(flash, {flash_traj.x+10,flash_traj.y-10,flash_traj.z+10}, data.ex_data);
+        double e4 = data.rate_flash_traj(flash, {flash_traj.x+10,flash_traj.y-10,flash_traj.z-10}, data.ex_data);
+        double e5 = data.rate_flash_traj(flash, {flash_traj.x-10,flash_traj.y+10,flash_traj.z+10}, data.ex_data);
+        double e6 = data.rate_flash_traj(flash, {flash_traj.x-10,flash_traj.y+10,flash_traj.z-10}, data.ex_data);
+        double e7 = data.rate_flash_traj(flash, {flash_traj.x-10,flash_traj.y-10,flash_traj.z+10}, data.ex_data);
+        double e8 = data.rate_flash_traj(flash, {flash_traj.x-10,flash_traj.y-10,flash_traj.z-10}, data.ex_data);
+        double min = min_8d(e1, e2, e3, e4, e5, e6, e7, e8);
+
+        if (min == e1 || min == e2 || min == e3 || min == e4) {
+            min_val.x = flash_traj.x;
+            flash_traj.x = (flash_traj.x + max_val.x) / 2;
+        } else {
+            max_val.x = flash_traj.x;
+            flash_traj.x = (flash_traj.x + min_val.x) / 2;
         }
 
+        if (min == e1 || min == e2 || min == e5 || min == e6) {
+            min_val.y = flash_traj.y;
+            flash_traj.y = (flash_traj.y + max_val.y) / 2;
+        } else {
+            max_val.y = flash_traj.y;
+            flash_traj.y = (flash_traj.y + min_val.y) / 2;
+        }
 
-        #pragma omp critical
-        if (local_best_error < *best_error) {
-            *best_error = local_best_error;
-            best_traj = local_best_traj;
+        if (min == e1 || min == e3 || min == e5 || min == e7) {
+            min_val.z = flash_traj.z;
+            flash_traj.z = (flash_traj.z + max_val.z) / 2;
+        } else {
+            max_val.z = flash_traj.z;
+            flash_traj.z = (flash_traj.z + min_val.z) / 2;
         }
     }
+    return flash_traj;
 }
 
 
@@ -86,16 +104,13 @@ int main() {
     data_t data;
     printf("Data is initialized\n");
 
-    vec3d_t flash_pos = {x0_default, y0_default, z0_default};
-    vec3d_t flash_traj = {kx_default, ky_default, kz_default};
-    double flash_error = INFINITY;
-    double traj_error = INFINITY;
-
-
+    
     ///////////////////////////
     /// Find flash position ///
     ///////////////////////////
 
+    vec3d_t flash_pos = {x0_default, y0_default, z0_default};
+    double flash_error = INFINITY;
     for (int i = 0; i+4 < RANDOM_FLASH_N; i+=5) {
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
@@ -104,7 +119,6 @@ int main() {
         run_random_epoch_on_flash(data, flash_pos, &flash_error);
         data.eliminate_inconsistent_flash_data(flash_pos);
     }
-
 
     printf("\nSummary on finding flash position:\n");
     printf("    Total square-error (rad): %#9.6f\n", flash_error);
@@ -116,20 +130,15 @@ int main() {
     /// Find flash trajectory ///
     /////////////////////////////
 
-    for (int i = 0; i+4 < RANDOM_TRAJ_N; i+=5) {
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        run_random_epoch_on_traj(data, flash_pos, flash_traj, &traj_error);
-        data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
-    }
+    vec3d_t flash_traj = btree_traj_search(data, flash_pos);
+    data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
+    flash_traj = btree_traj_search(data, flash_pos);
+    double traj_error = data.rate_flash_traj(flash_pos, flash_traj, data.ex_data);
 
     printf("\nSummary on finding flash trajectory:\n");
     printf("    Total square-error (rad): %#9.6f\n", traj_error);
     printf("    Mean square-error  (rad): %#9.6f\n", traj_error / (data.data_Ne * 3 - data.k_count));
     printf("    Standard error     (deg): %#9.6f\n", sqrt(traj_error / (data.data_Ne * 3 - data.k_count))/PI*180);
-
 
 
     // Print answer

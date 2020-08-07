@@ -16,6 +16,9 @@
 // Translate geographical location to XY.
 #define geo_to_xy(lat, lon) (vec2d_t {(EARTH_R * lon * cos(lat)), (EARTH_R * lat)})
 
+// Return minimum value
+double min_8d(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8);
+
 // Calculate delta of two angles.
 double angle_delta(double a1, double a2);
 __m128d angle_delta_sq_pd(double *addr1, double *addr2);

@@ -2,6 +2,24 @@
 #include <math.h>
 
 
+// Return minimum value
+double min_8d(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8) {
+    if (x1 < x2 && x1 < x3 && x1 < x4 && x1 < x5 && x1 < x6 && x1 < x7 && x1 < x8)
+        return x1;
+    if (x2 < x3 && x2 < x4 && x2 < x5 && x2 < x6 && x2 < x7 && x2 < x8)
+        return x2;
+    if (x3 < x4 && x3 < x5 && x3 < x6 && x3 < x7 && x3 < x8)
+        return x3;
+    if (x4 < x5 && x4 < x6 && x4 < x7 && x4 < x8)
+        return x4;
+    if (x5 < x6 && x5 < x7 && x5 < x8)
+        return x5;
+    if (x6 < x7 && x6 < x8)
+        return x6;
+    if (x7 < x8)
+        return x7;
+    return x8;
+}
 
 inline __m128d abs_pd(__m128d x) {
     static const __m128d __minus_zero = _mm_set1_pd(-0.);
