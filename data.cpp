@@ -20,7 +20,7 @@ data_t::data_t() {
         k_a[i] = 1;
 
         // Fill in pos_x and pos_y
-        pos_2d[i] = geo_to_xy(ob_lat[i]*PI/180, ob_lon[i]*PI/180);
+        ob_pos[i] = geo_to_xy(ob_lat[i]*PI/180, ob_lon[i]*PI/180);
 
         // Translate
         ob_z0[i] *= PI / 180;
@@ -36,14 +36,14 @@ data_t::data_t() {
  * Sets K=0 to all data which square-error is
  * max_error_k times greater than mean square-error
  */
-void data_t::eliminate_inconsistent_flash_data(const vec3d_t &pos) {
+void data_t::eliminate_inconsistent_flash_data(const vec3d_t &flash) {
     k_count = 0;
     for (int i = 0; i < data_N; i++) {
         k_z0[i] = 1;
         k_h0[i] = 1;
     }
 
-    double mean_error = rate_flash_pos(pos, ex_data) / (data_Ne * 2);
+    double mean_error = rate_flash_pos(flash, ex_data) / (data_Ne * 2);
     double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
@@ -80,8 +80,8 @@ void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_
 /*
  * Returns square-error of given answer
  */
-double data_t::rate_flash_pos(const vec3d_t &pos, processed_answer &dest) {
-    process_flash_pos(pos, dest);
+double data_t::rate_flash_pos(const vec3d_t &flash, processed_answer &dest) {
+    process_flash_pos(flash, dest);
 
     __m128d error = _mm_setzero_pd();
     __m128d err;
@@ -147,14 +147,14 @@ double data_t::rate_flash_traj(const vec3d_t &flash, const vec3d_t &params, proc
  * Return sigma (standard deviation)
  * of a given answer.
  */
-vec3d_t data_t::sigma_flash_pos(const vec3d_t &pos) {
+vec3d_t data_t::sigma_flash_pos(const vec3d_t &flash) {
     double sigma_x = 0;
     double sigma_y = 0;
     double sigma_z = 0;
     for (int i = 0; i < data_N; i++) {
-        double x_rel = pos.x - pos_2d[i].x;
-        double y_rel = pos.y - pos_2d[i].y;
-        double z_rel = pos.z - ob_height[i];
+        double x_rel = flash.x - ob_pos[i].x;
+        double y_rel = flash.y - ob_pos[i].y;
+        double z_rel = flash.z - ob_height[i];
         double tan_z0 = tan(ob_z0[i]);
         sigma_x += pow(y_rel * tan_z0 - x_rel, 2) * k_z0[i] * ob_e[i];
         sigma_y += pow(x_rel / tan_z0 - y_rel, 2) * k_z0[i] * ob_e[i];
@@ -174,8 +174,8 @@ vec3d_t data_t::sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params, pr
     double sigma_y = 0;
     double sigma_z = 0;
     for (int i = 0; i < data_N; i++) {
-        double x_rel = flash.x - pos_2d[i].x + params.x * dest.t[i];
-        double y_rel = flash.y - pos_2d[i].y + params.y * dest.t[i];
+        double x_rel = flash.x - ob_pos[i].x + params.x * dest.t[i];
+        double y_rel = flash.y - ob_pos[i].y + params.y * dest.t[i];
         double z_rel = flash.z - ob_height[i] + params.z * dest.t[i];
         double tan_zb = tan(ob_zb[i]);
         sigma_x += pow((y_rel * tan_zb - x_rel) / dest.t[i], 2) * k_zb[i] * ob_e[i];
@@ -194,13 +194,13 @@ vec3d_t data_t::sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params, pr
 /*
  * Fills in the 'expected' values.
  */
-void data_t::process_flash_pos(const vec3d_t &pos, processed_answer &dest) {
+void data_t::process_flash_pos(const vec3d_t &flash, processed_answer &dest) {
     for (int i = 0; i < data_N; i++) {
         // Relative position of flash
         vec3d_t rel_flash;
-        rel_flash.x = pos.x - pos_2d[i].x;
-        rel_flash.y = pos.y - pos_2d[i].y;
-        rel_flash.z = pos.z - ob_height[i];
+        rel_flash.x = flash.x - ob_pos[i].x;
+        rel_flash.y = flash.y - ob_pos[i].y;
+        rel_flash.z = flash.z - ob_height[i];
 
         // Azimuth and altitude of flash
         dest.z0[i] = azimuth(rel_flash.x, rel_flash.y);
@@ -211,8 +211,8 @@ void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, pro
     for (int i = 0; i < data_N; i++) {
         // Relative position of flash
         vec3d_t rel_flash;
-        rel_flash.x = flash.x - pos_2d[i].x;
-        rel_flash.y = flash.y - pos_2d[i].y;
+        rel_flash.x = flash.x - ob_pos[i].x;
+        rel_flash.y = flash.y - ob_pos[i].y;
         rel_flash.z = flash.z - ob_height[i];
 
         // Binary search for 't'

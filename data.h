@@ -44,7 +44,7 @@ struct data_t {
     // Additional variables
     int k_count = 0;
     int data_Ne = 0;
-    alignas(16) vec2d_t pos_2d[data_N];
+    alignas(16) vec3d_t ob_pos[data_N];
     // Used to ignore inconsistent data
     alignas(16) double k_z0[data_N];
     alignas(16) double k_h0[data_N];
@@ -62,21 +62,21 @@ struct data_t {
      * Sets K=0 to all data which square-error is
      * max_error_k times greater than mean square-error
      */
-    void eliminate_inconsistent_flash_data(const vec3d_t &pos);
+    void eliminate_inconsistent_flash_data(const vec3d_t &flash);
     void eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_t params);
 
 
     /*
      * Return square-error of a given answer.
      */
-    double rate_flash_pos(const vec3d_t &pos, processed_answer &dest);
+    double rate_flash_pos(const vec3d_t &flash, processed_answer &dest);
     double rate_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest);
 
     /*
      * Return sigma (standard deviation)
      * of a given answer.
      */
-    vec3d_t sigma_flash_pos(const vec3d_t &pos);
+    vec3d_t sigma_flash_pos(const vec3d_t &flash);
     vec3d_t sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest);
 
 

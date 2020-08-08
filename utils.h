@@ -14,7 +14,7 @@
 #define lerp(a0, a1, w) ((a0) + (w)*((a1) - (a0))) 
 
 // Translate geographical location to XY.
-#define geo_to_xy(lat, lon) (vec2d_t {(EARTH_R * lon * cos(lat)), (EARTH_R * lat)})
+#define geo_to_xy(lat, lon) (vec3d_t {(EARTH_R * lon * cos(lat)), (EARTH_R * lat), 0})
 
 // Return minimum value
 double min_8d(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8);
