@@ -45,6 +45,8 @@ struct data_t {
     int k_count = 0;
     int data_Ne = 0;
     alignas(16) vec3d_t ob_pos[data_N];
+    alignas(16) vec3d_t normal[data_N];
+    alignas(16) double r[data_N];
     // Used to ignore inconsistent data
     alignas(16) double k_z0[data_N];
     alignas(16) double k_h0[data_N];
