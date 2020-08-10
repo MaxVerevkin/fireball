@@ -1,5 +1,4 @@
 #include "data.h"
-#include <cstdio>
 
 #include "utils.h"
 #include "simd.h"
@@ -48,14 +47,14 @@ data_t::data_t() {
  * Sets K=0 to all data which square-error is
  * max_error_k times greater than mean square-error
  */
-void data_t::eliminate_inconsistent_flash_data(const vec3d_t &flash) {
+void data_t::eliminate_inconsistent_flash_data(const vec3d_t &flash_geo) {
     k_count = 0;
     for (int i = 0; i < data_N; i++) {
         k_z0[i] = 1;
         k_h0[i] = 1;
     }
 
-    double mean_error = rate_flash_pos(flash, ex_data) / (data_Ne * 2);
+    double mean_error = rate_flash_pos(flash_geo, ex_data) / (data_Ne * 2);
     double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
@@ -66,7 +65,7 @@ void data_t::eliminate_inconsistent_flash_data(const vec3d_t &flash) {
         k_count += !k_h0[i] * ob_e[i];
     }
 }
-//void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash, const vec3d_t params) {
+//void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash_geo, const vec3d_t params) {
     //k_count = 0;
     //for (int i = 0; i < data_N; i++) {
         //k_zb[i] = 1;
@@ -92,8 +91,8 @@ void data_t::eliminate_inconsistent_flash_data(const vec3d_t &flash) {
 /*
  * Returns square-error of given answer
  */
-double data_t::rate_flash_pos(const vec3d_t &flash, processed_answer &dest) {
-    process_flash_pos(flash, dest);
+double data_t::rate_flash_pos(const vec3d_t &flash_geo, processed_answer &dest) {
+    process_flash_pos(flash_geo, dest);
 
     __m128d error = _mm_setzero_pd();
     __m128d err;
