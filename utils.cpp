@@ -2,6 +2,21 @@
 #include <math.h>
 
 
+// Translate geographical location to XYZ.
+vec3d_t geo_to_xyz(double lat, double lon, double z) {
+    vec3d_t pos;
+    double r = EARTH_R + z;
+    double xy = r * cos(lat);
+    pos.x = xy * cos(lon);
+    pos.y = xy * sin(lon);
+    pos.z = r * sin(lat);
+    return pos;
+}
+vec3d_t geo_to_xyz(const vec3d_t &pos) {
+    return geo_to_xyz(pos.x, pos.y, pos.z);
+}
+
+
 // Return minimum value
 double min_8d(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8) {
     if (x1 < x2 && x1 < x3 && x1 < x4 && x1 < x5 && x1 < x6 && x1 < x7 && x1 < x8)
@@ -56,35 +71,11 @@ __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
 }
 
 
-// Calculate the azimuth given XY coordinates.
-double azimuth(double x, double y) {
-    // Handle y = 0
-    if (y == 0) {
-        if (x >= 0)
-            return PI / 2.f;
-        if (x < 0)
-            return 3.f / 2.f * PI;
-    }
-
-    // Calculate azimuth
-    double z = atan(x / y);
-
-    // I
-    if (x >= 0 and y > 0)
-        return z;
-    // II
-    if (x < 0 and y > 0)
-        return z + 2*PI;
-    // III and IV
-    return z + PI;
-}
-
-
-// Calculre the altitude for a 3D point (x,y,z).
-double altitude(const vec3d_t &point) {
-    if (point.x == 0 and point.y == 0)
-        return PI/2;
-    return atan(point.z / sqrt(point.x*point.x + point.y*point.y));
+// Calculate the azimuth given XYZ coordinates, North and East vectors.
+double azimuth(const vec3d_t &point, const vec3d_t &north, const vec3d_t east) {
+    double zc = acos(point * north / point.length() / north.length());
+    double cos_ze = point * east / point.length() / east.length();
+    return cos_ze >= 0 ? zc : 2*PI - zc;
 }
 
 
