@@ -12,6 +12,9 @@ vec3d_t geo_to_xyz(double lat, double lon, double z) {
     pos.z = r * sin(lat);
     return pos;
 }
+vec3d_t geo_to_xyz(const vec3d_t &pos) {
+    return geo_to_xyz(pos.x, pos.y, pos.z);
+}
 
 
 // Return minimum value

@@ -15,6 +15,7 @@
 
 // Translate geographical location to XYZ.
 vec3d_t geo_to_xyz(double lat, double lon, double z);
+vec3d_t geo_to_xyz(const vec3d_t &pos);
 
 // Return minimum value
 double min_8d(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8);

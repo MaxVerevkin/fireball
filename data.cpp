@@ -206,8 +206,12 @@ double data_t::rate_flash_pos(const vec3d_t &flash, processed_answer &dest) {
 /*
  * Fills in the 'expected' values.
  */
-void data_t::process_flash_pos(const vec3d_t &flash, processed_answer &dest) {
+void data_t::process_flash_pos(const vec3d_t &flash_geo, processed_answer &dest) {
+    // Translate from geo position to 3D point
+    vec3d_t flash = geo_to_xyz(flash_geo);
+
     for (int i = 0; i < data_N; i++) {
+        // Relative flash_position
         vec3d_t flash_rel = flash - ob_pos[i];
 
         double d = flash * normal[i] - r[i];
@@ -219,16 +223,6 @@ void data_t::process_flash_pos(const vec3d_t &flash, processed_answer &dest) {
 
         dest.h0[i] = l == 0 ? PI/2 : asin(d/l);
         dest.z0[i] = azimuth(flash_proj_rel, north, east);
-        printf("%i: %f %f\n", i, dest.h0[i]/PI*180, dest.z0[i]/PI*180);
-        // Relative position of flash
-        //vec3d_t rel_flash;
-        //rel_flash.x = flash.x - ob_pos[i].x;
-        //rel_flash.y = flash.y - ob_pos[i].y;
-        //rel_flash.z = flash.z - ob_height[i];
-
-        // Azimuth and altitude of flash
-        //dest.z0[i] = azimuth(rel_flash.x, rel_flash.y);
-        //dest.h0[i] = altitude(rel_flash);
     }
 }
 //void data_t::process_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest) {
