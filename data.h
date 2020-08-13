@@ -72,32 +72,32 @@ struct data_t {
     /*
      * Return square-error of a given answer.
      */
-    double rate_flash_pos(const vec3d_t &flash_geo, processed_answer &dest);
-    double rate_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params, processed_answer &dest);
+    double rate_flash_pos(const vec3d_t &flash_geo);
+    double rate_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params);
 
     /*
      * Return sigma (standard deviation)
      * of a given answer.
      */
     //vec3d_t sigma_flash_pos(const vec3d_t &flash_geo);
-    //vec3d_t sigma_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params, processed_answer &dest);
+    //vec3d_t sigma_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params);
 
 
     /*
      * Fills in the 'expected' values.
      */
-    void process_flash_pos(const vec3d_t &flash_geo, processed_answer &dest);
-    void process_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params, processed_answer &dest);
+    void process_flash_pos(const vec3d_t &flash_geo);
+    void process_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params);
 
     /*
      * Proceese answer for the trajectory for one observer given 't'.
      */
-    void process_flash_traj_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, processed_answer &dest);
+    void process_flash_traj_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i);
 
     /*
      * Returns square-error the trajectory for current answer given 't'
      */
-    double traj_error_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i, processed_answer &dest);
+    double traj_error_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i);
 };
 
 

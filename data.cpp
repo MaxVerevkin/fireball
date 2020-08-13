@@ -55,7 +55,7 @@ void data_t::eliminate_inconsistent_flash_data(const vec3d_t &flash_geo) {
         k_h0[i] = 1;
     }
 
-    double mean_error = rate_flash_pos(flash_geo, ex_data) / (data_Ne * 2);
+    double mean_error = rate_flash_pos(flash_geo) / (data_Ne * 2);
     double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
@@ -74,7 +74,7 @@ void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash_geo, const ve
         k_a[i] = 1;
     }
 
-    double mean_error = rate_flash_traj(flash_geo, params, ex_data) / (data_Ne * 3);
+    double mean_error = rate_flash_traj(flash_geo, params) / (data_Ne * 3);
     double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
@@ -92,22 +92,22 @@ void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash_geo, const ve
 /*
  * Returns square-error of given answer
  */
-double data_t::rate_flash_pos(const vec3d_t &flash_geo, processed_answer &dest) {
-    process_flash_pos(flash_geo, dest);
+double data_t::rate_flash_pos(const vec3d_t &flash_geo) {
+    process_flash_pos(flash_geo);
 
     __m128d error = _mm_setzero_pd();
     __m128d err;
     __m128d K;
 
     for (int i = 0; i+1 < data_N; i+=2) {
-        err = angle_delta_sq_pd(ob_z0 + i, dest.z0 + i); // err = sq_delta(ob_z0, dest.z0)
+        err = angle_delta_sq_pd(ob_z0 + i, ex_data.z0 + i); // err = sq_delta(ob_z0, ex_data.z0)
         K = _mm_load_pd(k_z0 + i);                       // K = k_z0
         err = _mm_mul_pd(err, K);                        // err *= K
         K = _mm_load_pd(ob_e + i);                       // K = ob_e
         err = _mm_mul_pd(err, K);                        // err *= K
         error = _mm_add_pd(error, err);                  // error += err
 
-        err = angle_delta_sq_pd(ob_h0 + i, dest.h0 + i);
+        err = angle_delta_sq_pd(ob_h0 + i, ex_data.h0 + i);
         K = _mm_load_pd(k_h0 + i);
         err = _mm_mul_pd(err, K);
         K = _mm_load_pd(ob_e + i);
@@ -119,29 +119,29 @@ double data_t::rate_flash_pos(const vec3d_t &flash_geo, processed_answer &dest) 
     _mm_storeu_pd(x, error);
     return x[0] + x[1];
 }
-double data_t::rate_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params, processed_answer &dest) {
-    process_flash_traj(flash_geo, params, dest);
+double data_t::rate_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params) {
+    process_flash_traj(flash_geo, params);
 
     __m128d error = _mm_setzero_pd();
     __m128d err;
     __m128d K;
 
     for (int i = 0; i+1 < data_N; i+=2) {
-        err = angle_delta_sq_pd(ob_zb + i, dest.zb + i);
+        err = angle_delta_sq_pd(ob_zb + i, ex_data.zb + i);
         K = _mm_load_pd(k_zb + i);
         err = _mm_mul_pd(err, K);
         K = _mm_load_pd(ob_e + i);
         err = _mm_mul_pd(err, K);
         error = _mm_add_pd(error, err);
 
-        err = angle_delta_sq_pd(ob_hb + i, dest.hb + i);
+        err = angle_delta_sq_pd(ob_hb + i, ex_data.hb + i);
         K = _mm_load_pd(k_hb + i);
         err = _mm_mul_pd(err, K);
         K = _mm_load_pd(ob_e + i);
         err = _mm_mul_pd(err, K);
         error = _mm_add_pd(error, err);
 
-        err = angle_delta_sq_pd(ob_a + i, dest.a + i);
+        err = angle_delta_sq_pd(ob_a + i, ex_data.a + i);
         K = _mm_load_pd(k_a + i);
         err = _mm_mul_pd(err, K);
         K = _mm_load_pd(ob_e + i);
@@ -179,20 +179,20 @@ double data_t::rate_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params, 
 
     //return vec3d_t {sqrt(sigma_x), sqrt(sigma_y), sqrt(sigma_z)};
 //}
-//vec3d_t data_t::sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params, processed_answer &dest) {
-    //process_flash_traj(flash, params, dest);
+//vec3d_t data_t::sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params) {
+    //process_flash_traj(flash, params);
 
     //double sigma_x = 0;
     //double sigma_y = 0;
     //double sigma_z = 0;
     //for (int i = 0; i < data_N; i++) {
-        //double x_rel = flash.x - ob_pos[i].x + params.x * dest.t[i];
-        //double y_rel = flash.y - ob_pos[i].y + params.y * dest.t[i];
-        //double z_rel = flash.z - ob_pos[i].z + params.z * dest.t[i];
+        //double x_rel = flash.x - ob_pos[i].x + params.x * ex_data.t[i];
+        //double y_rel = flash.y - ob_pos[i].y + params.y * ex_data.t[i];
+        //double z_rel = flash.z - ob_pos[i].z + params.z * ex_data.t[i];
         //double tan_zb = tan(ob_zb[i]);
-        //sigma_x += pow((y_rel * tan_zb - x_rel) / dest.t[i], 2) * k_zb[i] * ob_e[i];
-        //sigma_y += pow((x_rel / tan_zb - y_rel) / dest.t[i], 2) * k_zb[i] * ob_e[i];
-        //sigma_z += pow((sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_hb[i]) - z_rel) / dest.t[i], 2) * k_hb[i] * ob_e[i];
+        //sigma_x += pow((y_rel * tan_zb - x_rel) / ex_data.t[i], 2) * k_zb[i] * ob_e[i];
+        //sigma_y += pow((x_rel / tan_zb - y_rel) / ex_data.t[i], 2) * k_zb[i] * ob_e[i];
+        //sigma_z += pow((sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_hb[i]) - z_rel) / ex_data.t[i], 2) * k_hb[i] * ob_e[i];
     //}
 
     //sigma_x /= data_N * (data_N - 1);
@@ -206,7 +206,7 @@ double data_t::rate_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params, 
 /*
  * Fills in the 'expected' values.
  */
-void data_t::process_flash_pos(const vec3d_t &flash_geo, processed_answer &dest) {
+void data_t::process_flash_pos(const vec3d_t &flash_geo) {
     // Translate from geo position to 3D point
     vec3d_t flash = geo_to_xyz(flash_geo);
 
@@ -222,36 +222,36 @@ void data_t::process_flash_pos(const vec3d_t &flash_geo, processed_answer &dest)
         vec3d_t north = vec3d_t {-ob_pos[i].x, -ob_pos[i].y, -ob_pos[i].z+r[i]/sin(ob_lat[i])};
         vec3d_t east = vec3d_t {-sin(ob_lon[i]), cos(ob_lon[i]), 0};
 
-        dest.h0[i] = l == 0 ? PI/2 : asin(d/l);
-        dest.z0[i] = azimuth(flash_proj_rel, north, east);
+        ex_data.h0[i] = l == 0 ? PI/2 : asin(d/l);
+        ex_data.z0[i] = azimuth(flash_proj_rel, north, east);
     }
 }
-void data_t::process_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params, processed_answer &dest) {
+void data_t::process_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params) {
     for (int i = 0; i < data_N; i++) {
         // Binary search for 't'
         double min = T_SEARCH_MIN;
         double max = T_SEARCH_MAX;
-        dest.t[i] = (min+max) / 2;
+        ex_data.t[i] = (min+max) / 2;
         for (int j = 0; j < T_SEARCH_DEPTH; j++) {
-            double e1 = traj_error_i(flash_geo, params, dest.t[i]-.0001, i, dest);
-            double e2 = traj_error_i(flash_geo, params, dest.t[i]+.0001, i, dest);
+            double e1 = traj_error_i(flash_geo, params, ex_data.t[i]-.0001, i);
+            double e2 = traj_error_i(flash_geo, params, ex_data.t[i]+.0001, i);
             if (e1 < e2) {
-                max = dest.t[i];
-                dest.t[i] = (min + dest.t[i]) / 2;
+                max = ex_data.t[i];
+                ex_data.t[i] = (min + ex_data.t[i]) / 2;
             } else {
-                min = dest.t[i];
-                dest.t[i] = (dest.t[i] + max) / 2;
+                min = ex_data.t[i];
+                ex_data.t[i] = (ex_data.t[i] + max) / 2;
             }
         }
         // Actually process current answer
-        process_flash_traj_i(flash_geo, params, dest.t[i], i, dest);
+        process_flash_traj_i(flash_geo, params, ex_data.t[i], i);
     }
 }
 
 /*
  * Proceese answer for the trajectory for one observer given 't'.
  */
-void data_t::process_flash_traj_i(const vec3d_t &flash_geo, const vec3d_t params, double t, int i, processed_answer &dest) {
+void data_t::process_flash_traj_i(const vec3d_t &flash_geo, const vec3d_t params, double t, int i) {
     // Translate from geo position to 3D point
     vec3d_t flash = geo_to_xyz(flash_geo);
 
@@ -269,21 +269,21 @@ void data_t::process_flash_traj_i(const vec3d_t &flash_geo, const vec3d_t params
     vec3d_t north = vec3d_t {-ob_pos[i].x, -ob_pos[i].y, -ob_pos[i].z+r[i]/sin(ob_lat[i])};
     vec3d_t east = vec3d_t {-sin(ob_lon[i]), cos(ob_lon[i]), 0};
 
-    dest.hb[i] = l == 0 ? PI/2 : asin(d/l);
-    dest.zb[i] = azimuth(begin_proj_rel, north, east);
-    dest.a[i] = desent_angle(dest.hb[i], dest.zb[i], dest.h0[i], dest.z0[i]);
+    ex_data.hb[i] = l == 0 ? PI/2 : asin(d/l);
+    ex_data.zb[i] = azimuth(begin_proj_rel, north, east);
+    ex_data.a[i] = desent_angle(ex_data.hb[i], ex_data.zb[i], ex_data.h0[i], ex_data.z0[i]);
 }
 
 /*
  * Returns square-error the trajectory for current answer given 't'
  */
-double data_t::traj_error_i(const vec3d_t &flash_geo, const vec3d_t params, double t, int i, processed_answer &dest) {
-    process_flash_traj_i(flash_geo, params, t, i, dest);
+double data_t::traj_error_i(const vec3d_t &flash_geo, const vec3d_t params, double t, int i) {
+    process_flash_traj_i(flash_geo, params, t, i);
     // Error
     double error = 0;
-    error += pow(angle_delta(dest.zb[i], ob_zb[i]), 2) * k_zb[i] * ob_e[i];
-    error += pow(angle_delta(dest.hb[i], ob_hb[i]), 2) * k_hb[i] * ob_e[i];
-    error += pow(angle_delta(dest.a[i], ob_a[i]), 2) * k_a[i] * ob_e[i];
+    error += pow(angle_delta(ex_data.zb[i], ob_zb[i]), 2) * k_zb[i] * ob_e[i];
+    error += pow(angle_delta(ex_data.hb[i], ob_hb[i]), 2) * k_hb[i] * ob_e[i];
+    error += pow(angle_delta(ex_data.a[i], ob_a[i]), 2) * k_a[i] * ob_e[i];
     return error;
 }
 

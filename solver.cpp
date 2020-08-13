@@ -27,8 +27,8 @@ vec3d_t btree_flash_search(data_t &data) {
             flash_pos.x = (min_val.x + max_val.x) / 2;
 
             vec3d_t correction = {(max_val.x - min_val.x) / 100, 0, 0};
-            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction, data.ex_data);
-            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction, data.ex_data);
+            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
+            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
 
             if (e1 < e2)
                 max_val.x = (max_val.x + flash_pos.x) / 2;
@@ -41,8 +41,8 @@ vec3d_t btree_flash_search(data_t &data) {
             flash_pos.y = (min_val.y + max_val.y) / 2;
 
             vec3d_t correction {0, (max_val.y - min_val.y) / 1000, 0};
-            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction, data.ex_data);
-            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction, data.ex_data);
+            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
+            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
 
             if (e1 < e2)
                 max_val.y = (max_val.y + flash_pos.y) / 2;
@@ -55,8 +55,8 @@ vec3d_t btree_flash_search(data_t &data) {
             flash_pos.z = (min_val.z + max_val.z) / 2;
 
             vec3d_t correction = {0, 0, (max_val.z - min_val.z) / 100};
-            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction, data.ex_data);
-            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction, data.ex_data);
+            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
+            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
 
             if (e1 < e2)
                 max_val.z = (max_val.z + flash_pos.z) / 2;
@@ -68,7 +68,6 @@ vec3d_t btree_flash_search(data_t &data) {
         min_val = {lat0_min/180*PI, -PI/6, z0_min};
         max_val = {lat0_max/180*PI, PI/6, z0_max};
 
-        printf("%f %f %f\n", flash_pos.x/PI*180, flash_pos.y/PI*180, flash_pos.z);
     }
     return flash_pos + flash_pos_offset;
 }
@@ -93,7 +92,7 @@ vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
                 correction.y = (max_val.y - min_val.y) / 10 * yi;
                 for (int zi = -1; zi <= 1; zi+=2) {
                     correction.z = (max_val.z - min_val.z) / 10 * zi;
-                    double error = data.rate_flash_traj(flash_pos, flash_traj + correction, data.ex_data);
+                    double error = data.rate_flash_traj(flash_pos, flash_traj + correction);
                     if (error < min_err) {
                         min_err = error;
                         best_index_x = xi;
@@ -147,7 +146,7 @@ int main() {
     vec3d_t flash_pos = btree_flash_search(data);
     data.eliminate_inconsistent_flash_data(flash_pos);
     flash_pos = btree_flash_search(data);
-    double flash_error = data.rate_flash_pos(flash_pos, data.ex_data);
+    double flash_error = data.rate_flash_pos(flash_pos);
 
     printf("\nSummary on finding flash position:\n");
     printf("    Total square-error (rad): %#9.6f\n", flash_error);
@@ -162,7 +161,7 @@ int main() {
     vec3d_t flash_traj = btree_traj_search(data, flash_pos);
     data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
     flash_traj = btree_traj_search(data, flash_pos);
-    double traj_error = data.rate_flash_traj(flash_pos, flash_traj, data.ex_data);
+    double traj_error = data.rate_flash_traj(flash_pos, flash_traj);
 
     printf("\nSummary on finding flash trajectory:\n");
     printf("    Total square-error (rad): %#9.6f\n", traj_error);
