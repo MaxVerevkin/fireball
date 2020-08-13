@@ -7,62 +7,70 @@
  * Run binary-tree-like search in 3D value-space.
  */
 vec3d_t btree_flash_search(data_t &data) {
+
+    // For the search, longitude
+    // is defined between -30 and 30 degrees.
+    // An offset (mean of observer's longitudes)
+    // is added to get real value.
     vec3d_t flash_pos;
-    vec3d_t min_val {lat0_min/180*PI, lon0_min/180*PI, z0_min};
-    vec3d_t max_val {lat0_max/180*PI, lon0_max/180*PI, z0_max};
+    vec3d_t min_val {lat0_min/180*PI, -PI/6, z0_min};
+    vec3d_t max_val {lat0_max/180*PI, PI/6, z0_max};
     flash_pos.x = (min_val.x + max_val.x) / 2;
-    flash_pos.y = (min_val.y + max_val.y) / 2;
+    flash_pos.x = (min_val.y + max_val.y) / 2;
     flash_pos.z = (min_val.z + max_val.z) / 2;
+    vec3d_t flash_pos_offset {0, data.mean_lon, 0};
 
-    for (int i = 0; i < FLASH_SEARCH_DEPTH; i++) {
+    for (int i = 0; i < FLASH_SEARCH_N; i++) {
 
-        // Found combination of parameter's
-        // changes that gives least error.
-        double min_err = INFINITY;
-        int best_index_x=0, best_index_y=0, best_index_z=0;
-        vec3d_t correction;
-        for (int xi = -1; xi <= 1; xi+=2) {
-            correction.x = (max_val.x - min_val.x) / 100 * xi;
-            for (int yi = -1; yi <= 1; yi+=2) {
-                correction.y = (max_val.y - min_val.y) / 100 * yi;
-                for (int zi = -1; zi <= 1; zi+=2) {
-                    correction.z = (max_val.z - min_val.z) / 1000 * zi;
-                    double error = data.rate_flash_pos(flash_pos + correction, data.ex_data);
-                    if (error < min_err) {
-                        min_err = error;
-                        best_index_x = xi;
-                        best_index_y = yi;
-                        best_index_z = zi;
-                    }
-                }
-            }
+        // X
+        for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
+            flash_pos.x = (min_val.x + max_val.x) / 2;
+
+            vec3d_t correction = {(max_val.x - min_val.x) / 100, 0, 0};
+            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction, data.ex_data);
+            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction, data.ex_data);
+
+            if (e1 < e2)
+                max_val.x = (max_val.x + flash_pos.x) / 2;
+            else
+                min_val.x = (min_val.x + flash_pos.x) / 2;
         }
 
-        if (best_index_x == -1) {
-            max_val.x = (max_val.x +flash_pos.x) / 2;
-            flash_pos.x = (flash_pos.x + min_val.x) / 2;
-        } else if (best_index_x == 1) {
-            min_val.x = (min_val.x + flash_pos.x) / 2;
-            flash_pos.x = (flash_pos.x + max_val.x) / 2;
+        // Y
+        for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
+            flash_pos.y = (min_val.y + max_val.y) / 2;
+
+            vec3d_t correction {0, (max_val.y - min_val.y) / 1000, 0};
+            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction, data.ex_data);
+            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction, data.ex_data);
+
+            if (e1 < e2)
+                max_val.y = (max_val.y + flash_pos.y) / 2;
+            else
+                min_val.y = (min_val.y + flash_pos.y) / 2;
         }
 
-        if (best_index_y == -1) {
-            max_val.y = (max_val.y +flash_pos.y) / 2;
-            flash_pos.y = (flash_pos.y + min_val.y) / 2;
-        } else if (best_index_y == 1) {
-            min_val.y = (min_val.y + flash_pos.y) / 2;
-            flash_pos.y = (flash_pos.y + max_val.y) / 2;
+        // Z
+        for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
+            flash_pos.z = (min_val.z + max_val.z) / 2;
+
+            vec3d_t correction = {0, 0, (max_val.z - min_val.z) / 100};
+            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction, data.ex_data);
+            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction, data.ex_data);
+
+            if (e1 < e2)
+                max_val.z = (max_val.z + flash_pos.z) / 2;
+            else
+                min_val.z = (min_val.z + flash_pos.z) / 2;
         }
 
-        if (best_index_z == -1) {
-            max_val.z = (max_val.z +flash_pos.z) / 2;
-            flash_pos.z = (flash_pos.z + min_val.z) / 2;
-        } else if (best_index_z == 1) {
-            min_val.z = (min_val.z + flash_pos.z) / 2;
-            flash_pos.z = (flash_pos.z + max_val.z) / 2;
-        }
+        // Reset bounds
+        min_val = {lat0_min/180*PI, -PI/6, z0_min};
+        max_val = {lat0_max/180*PI, PI/6, z0_max};
+
+        printf("%f %f %f\n", flash_pos.x/PI*180, flash_pos.y/PI*180, flash_pos.z);
     }
-    return flash_pos;
+    return flash_pos + flash_pos_offset;
 }
 vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
     vec3d_t flash_traj;

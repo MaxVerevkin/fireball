@@ -31,6 +31,7 @@ data_t::data_t() {
         ob_zb[i] *= PI / 180;
         ob_hb[i] *= PI / 180;
         ob_a[i] *= PI / 180;
+        mean_lon += ob_lon[i] / data_N;
         
         // Calculate in 3D position
         ob_pos[i] = geo_to_xyz(ob_lat[i], ob_lon[i], ob_height[i]);

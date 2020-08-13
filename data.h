@@ -44,6 +44,7 @@ struct data_t {
     // Additional variables
     int k_count = 0;
     int data_Ne = 0;
+    double mean_lon;
     alignas(16) vec3d_t ob_pos[data_N];
     alignas(16) vec3d_t normal[data_N];
     alignas(16) double r[data_N];
