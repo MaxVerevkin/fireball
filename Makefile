@@ -1,8 +1,8 @@
 CC = g++
-CFLAGS = -O3 -mavx2 -Wall -fopenmp
+CFLAGS = -O3 -mavx2 -Wall
 
 all: solver.o utils.o data.o structs.o
-	$(CC) -o solver solver.o utils.o data.o structs.o -fopenmp
+	$(CC) -o solver solver.o utils.o data.o structs.o
 
 solver.o: solver.cpp utils.h structs.h data.h hyperparams.h simd.h
 	$(CC) $(CFLAGS) -c solver.cpp
