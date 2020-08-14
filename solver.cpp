@@ -9,11 +9,16 @@
 vec3d_t btree_flash_search(data_t &data) {
 
     // For the search, latitude and longitude
-    // are defined between -30 and 30 degrees.
+    // are defined between -10 and 10 degrees.
+    // This 10 degrees are calculated with:
+    //      a = acos(R/(R+h)),
+    // where R - radius of Earth
+    //       h - maximum height of flash
+    //
     // An offset (mean of observer's values)
     // is added to get real value.
-    vec3d_t min_val {-PI/6, -PI/6, z0_min};
-    vec3d_t max_val { PI/6,  PI/6, z0_max};
+    vec3d_t min_val {-PI/18, -PI/18, z0_min};
+    vec3d_t max_val { PI/18,  PI/18, z0_max};
     vec3d_t flash_pos = {0, 0, (min_val.z + max_val.z) / 2};
     vec3d_t flash_pos_offset {data.mean_lat, data.mean_lon, 0};
 
@@ -62,8 +67,8 @@ vec3d_t btree_flash_search(data_t &data) {
         }
 
         // Reset bounds
-        min_val = {-PI/6, -PI/6, z0_min};
-        max_val = { PI/6,  PI/6, z0_max};
+        min_val = {-PI/18, -PI/18, z0_min};
+        max_val = { PI/18,  PI/18, z0_max};
 
     }
     return flash_pos + flash_pos_offset;

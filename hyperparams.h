@@ -13,8 +13,8 @@
 #define T_SEARCH_MIN 1
 #define T_SEARCH_MAX 7
 
-#define FLASH_SEARCH_DEPTH 50
-#define FLASH_SEARCH_N 25
+#define FLASH_SEARCH_DEPTH 45
+#define FLASH_SEARCH_N 20
 #define z0_min 0.
 #define z0_max 70000.
 
