@@ -1,20 +1,17 @@
-CC = g++
-CFLAGS = -O3 -mavx2 -Wall
+OBJECTS = solver.o utils.o data.o structs.o
+CXXFLAGS = -O3 -mavx2 -Wall
+LDFLAGS =
 
-all: solver.o utils.o data.o structs.o
-	$(CC) -o solver solver.o utils.o data.o structs.o
+all: $(OBJECTS)
+	$(CXX) $(OBJECTS) $(LDFLAGS) -o solver
+
+paralel:
+	$(MAKE) CXXFLAGS="-O3 -mavx2 -Wall -fopenmp -DOP_PARALEL" LDFLAGS="-fopenmp"
 
 solver.o: solver.cpp utils.h structs.h data.h hyperparams.h simd.h
-	$(CC) $(CFLAGS) -c solver.cpp
-
 utils.o: utils.cpp utils.h structs.h simd.h
-	$(CC) $(CFLAGS) -c utils.cpp
-
 data.o: data.cpp data.h utils.h structs.h hyperparams.h data_values.h simd.h
-	$(CC) $(CFLAGS) -c data.cpp
-
 structs.o: structs.h
-	$(CC) $(CFLAGS) -c structs.cpp
 
 clean:
-	rm -f solver solver.o utils.o data.o structs.o
+	rm -f solver *.o

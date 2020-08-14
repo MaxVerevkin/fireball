@@ -5,6 +5,13 @@
 
 #include "hyperparams.h"
 
+
+// Paralelisation
+#ifdef OP_PARALEL
+#include <omp.h>
+#endif
+
+
 data_t::data_t() {
 
     // Prepreocess
@@ -211,6 +218,9 @@ void data_t::process_flash_pos(const vec3d_t &flash_geo) {
     // Translate from geo position to 3D point
     vec3d_t flash = geo_to_xyz(flash_geo);
 
+    #ifdef OP_PARALEL
+    #pragma omp parallel for
+    #endif
     for (int i = 0; i < data_N; i++) {
         // Relative flash_position
         vec3d_t flash_rel = flash - ob_pos[i];
@@ -226,6 +236,9 @@ void data_t::process_flash_pos(const vec3d_t &flash_geo) {
     }
 }
 void data_t::process_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params) {
+    #ifdef OP_PARALEL
+    #pragma omp parallel for
+    #endif
     for (int i = 0; i < data_N; i++) {
         // Binary search for 't'
         double min = T_SEARCH_MIN;
