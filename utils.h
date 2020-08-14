@@ -17,9 +17,6 @@
 vec3d_t geo_to_xyz(double lat, double lon, double z);
 vec3d_t geo_to_xyz(const vec3d_t &pos);
 
-// Return minimum value
-double min_8d(double x1, double x2, double x3, double x4, double x5, double x6, double x7, double x8);
-
 // Calculate delta of two angles.
 double angle_delta(double a1, double a2);
 __m128d angle_delta_sq_pd(double *addr1, double *addr2);
