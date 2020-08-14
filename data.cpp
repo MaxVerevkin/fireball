@@ -219,11 +219,9 @@ void data_t::process_flash_pos(const vec3d_t &flash_geo) {
         double l = flash_rel.length();
 
         vec3d_t flash_proj_rel = flash - normal[i]*d - ob_pos[i];
-        vec3d_t north = vec3d_t {-ob_pos[i].x, -ob_pos[i].y, -ob_pos[i].z+r[i]/sin(ob_lat[i])};
-        vec3d_t east = vec3d_t {-sin(ob_lon[i]), cos(ob_lon[i]), 0};
 
         ex_data.h0[i] = l == 0 ? PI/2 : asin(d/l);
-        ex_data.z0[i] = azimuth(flash_proj_rel, north, east);
+        ex_data.z0[i] = azimuth(ob_pos[i], flash_proj_rel, normal[i], ob_lat[i], ob_lon[i], r[i]);
     }
 }
 void data_t::process_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params) {
@@ -266,11 +264,9 @@ void data_t::process_flash_traj_i(const vec3d_t &flash_geo, const vec3d_t params
     double l = begin_rel.length();
 
     vec3d_t begin_proj_rel = begin - normal[i]*d - ob_pos[i];
-    vec3d_t north = vec3d_t {-ob_pos[i].x, -ob_pos[i].y, -ob_pos[i].z+r[i]/sin(ob_lat[i])};
-    vec3d_t east = vec3d_t {-sin(ob_lon[i]), cos(ob_lon[i]), 0};
 
     ex_data.hb[i] = l == 0 ? PI/2 : asin(d/l);
-    ex_data.zb[i] = azimuth(begin_proj_rel, north, east);
+    ex_data.zb[i] = azimuth(ob_pos[i], begin_proj_rel, normal[i], ob_lat[i], ob_lon[i], r[i]);
     ex_data.a[i] = desent_angle(ex_data.hb[i], ex_data.zb[i], ex_data.h0[i], ex_data.z0[i]);
 }
 

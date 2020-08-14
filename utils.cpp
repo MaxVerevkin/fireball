@@ -53,7 +53,11 @@ __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
 
 
 // Calculate the azimuth given XYZ coordinates, North and East vectors.
-double azimuth(const vec3d_t &point, const vec3d_t &north, const vec3d_t east) {
+double azimuth(const vec3d_t &observer, const vec3d_t &point, const vec3d_t normal, double ob_lat, double ob_lon, double r) {
+
+    vec3d_t north = vec3d_t {-observer.x, -observer.y, -observer.z+r/sin(ob_lat)};
+    vec3d_t east = vec3d_t {-sin(ob_lon), cos(ob_lon), 0};
+
     double zc = acos(point * north / point.length() / north.length());
     double cos_ze = point * east / point.length() / east.length();
     return cos_ze >= 0 ? zc : 2*PI - zc;

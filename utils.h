@@ -19,7 +19,7 @@ double angle_delta(double a1, double a2);
 __m128d angle_delta_sq_pd(double *addr1, double *addr2);
 
 // Calculate the azimuth given XY coordinates.
-double azimuth(const vec3d_t &point, const vec3d_t &north, const vec3d_t east);
+double azimuth(const vec3d_t &observer, const vec3d_t &point, const vec3d_t normal, double ob_lat, double ob_lon, double r);
 
 // Calculate the disent angle for the begining of the path.
 double desent_angle(double h, double z, double h0, double z0);
