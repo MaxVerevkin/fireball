@@ -32,10 +32,10 @@ Ignore: 'desent_angle'   for observer 5
 ```
 # Compilation
 ```
-git clone git@github.com:MaxVerevkin/fireball.git
-make
+$ git clone git@github.com:MaxVerevkin/fireball.git
+$ make
 ```
 Optionally, to enable parallelism (OpenMP), make with (remember to `make clean`):
 ```
-make paralel
+$ make paralel
 ```
