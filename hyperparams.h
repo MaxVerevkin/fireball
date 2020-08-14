@@ -15,9 +15,6 @@
 
 #define FLASH_SEARCH_DEPTH 50
 #define FLASH_SEARCH_N 25
-// In degrees
-#define lat0_min 0.
-#define lat0_max 90.
 #define z0_min 0.
 #define z0_max 70000.
 

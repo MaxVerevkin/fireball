@@ -8,17 +8,14 @@
  */
 vec3d_t btree_flash_search(data_t &data) {
 
-    // For the search, longitude
-    // is defined between -30 and 30 degrees.
-    // An offset (mean of observer's longitudes)
+    // For the search, latitude and longitude
+    // are defined between -30 and 30 degrees.
+    // An offset (mean of observer's values)
     // is added to get real value.
-    vec3d_t flash_pos;
-    vec3d_t min_val {lat0_min/180*PI, -PI/6, z0_min};
-    vec3d_t max_val {lat0_max/180*PI, PI/6, z0_max};
-    flash_pos.x = (min_val.x + max_val.x) / 2;
-    flash_pos.x = (min_val.y + max_val.y) / 2;
-    flash_pos.z = (min_val.z + max_val.z) / 2;
-    vec3d_t flash_pos_offset {0, data.mean_lon, 0};
+    vec3d_t min_val {-PI/6, -PI/6, z0_min};
+    vec3d_t max_val { PI/6,  PI/6, z0_max};
+    vec3d_t flash_pos = {0, 0, (min_val.z + max_val.z) / 2};
+    vec3d_t flash_pos_offset {data.mean_lat, data.mean_lon, 0};
 
     for (int i = 0; i < FLASH_SEARCH_N; i++) {
 
@@ -65,8 +62,8 @@ vec3d_t btree_flash_search(data_t &data) {
         }
 
         // Reset bounds
-        min_val = {lat0_min/180*PI, -PI/6, z0_min};
-        max_val = {lat0_max/180*PI, PI/6, z0_max};
+        min_val = {-PI/6, -PI/6, z0_min};
+        max_val = { PI/6,  PI/6, z0_max};
 
     }
     return flash_pos + flash_pos_offset;
