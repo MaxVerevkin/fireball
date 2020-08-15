@@ -14,7 +14,7 @@
 
 data_t::data_t() {
 
-    // Prepreocess
+    // Preprocess
     for (int i = 0; i < data_N; i++) {
 
         // data_Ne is a sum of all ob_e
