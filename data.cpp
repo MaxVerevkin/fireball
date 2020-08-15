@@ -101,8 +101,18 @@ vec3d_t data_t::get_flash_vel(const vec3d_t &flash_geo, const vec3d_t &traj) {
     vec3d_t vel = global_to_local(traj, flash_geo.x, flash_geo.y);
     double k = 0;
     for (int i = 0; i < data_N; i++)
-        k += ex_data.t[0] / ob_t[i];
+        k += ex_data.t[i] / ob_t[i];
     return vel * (-k / data_N);
+}
+
+
+/*
+ * Normalize aobserver's 't'
+ */
+void data_t::normalize_t(const vec3d_t &flash_vel) {
+    double vel = flash_vel.length();
+    for (int i = 0; i < data_N; i++)
+        ex_data.t[i] /= vel;
 }
 
 

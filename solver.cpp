@@ -156,6 +156,7 @@ int main() {
     flash_traj = btree_traj_search(data, flash_pos);
     double traj_error = data.rate_flash_traj(flash_pos, flash_traj);
     vec3d_t flash_vel = data.get_flash_vel(flash_pos, flash_traj);
+    data.normalize_t(flash_vel);
 
     printf("\nSummary on finding flash trajectory:\n");
     printf("    Total square-error (rad): %#9.6f\n", traj_error);

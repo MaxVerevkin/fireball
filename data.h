@@ -75,6 +75,11 @@ struct data_t {
      */
     vec3d_t get_flash_vel(const vec3d_t &flash_geo, const vec3d_t &traj);
 
+    /*
+     * Normalize aobserver's 't'
+     */
+    void normalize_t(const vec3d_t &flash_vel);
+
 
     /*
      * Return square-error of a given answer.
