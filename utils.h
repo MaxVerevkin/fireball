@@ -24,5 +24,16 @@ double azimuth(const vec3d_t &observer, const vec3d_t &point, const vec3d_t norm
 // Calculate the disent angle for the begining of the path.
 double desent_angle(double h, double z, double h0, double z0);
 
+// Calculate normal
+vec3d_t normal_vec(double lat, double lon);
+
+// Genetare vector pointing to Notrh
+vec3d_t north_vec(double lat, double lon);
+// Genetare vector pointing to East
+vec3d_t east_vec(double lat, double lon);
+
+// Translate global vector to local
+vec3d_t global_to_local(vec3d_t vec, double lat, double lon);
+
 
 #endif

@@ -13,19 +13,21 @@ Summary on finding flash position:
     Standard error     (deg):  0.293309
 
 Summary on finding flash trajectory:
-    Total square-error (rad):  0.000225
+    Total square-error (rad):  0.000217
     Mean square-error  (rad):  0.000013
-    Standard error     (deg):  0.208667
+    Standard error     (deg):  0.204691
 
-Answer: 35.23692 33.46764 17045.49347 27999.82563 37920.18937 -754.43496
+Answer:
+  Location: 35.23692 33.46764 17045.49347
+  Velocity: -9676.84688 15605.03788 -21323.51225
 
                   i     z0        h0        zb        hb         A         t
-Processed Answer (1):  50.545 |  13.511 |  82.855 |  40.188 | 235.904 | 1.246094
-Processed Answer (2):  51.986 |  39.925 | 129.961 |  54.509 | 287.918 | 1.996094
-Processed Answer (3):  34.009 |  12.603 |  78.067 |  48.107 | 240.987 | 1.691406
-Processed Answer (4): 340.296 |  14.349 | 359.325 |  68.030 | 202.660 | 1.246094
-Processed Answer (5):  83.010 |  14.260 | 113.871 |  39.041 | 236.208 | 1.902344
-Processed Answer (6): 104.465 |  17.006 | 124.264 |  36.717 | 226.866 | 1.503906
+Processed Answer (1):  50.545 |  13.511 |  82.919 |  40.217 | 235.950 | 69930.267334
+Processed Answer (2):  51.986 |  39.925 | 129.963 |  54.496 | 287.929 | 112003.326416
+Processed Answer (3):  34.009 |  12.603 |  78.009 |  48.076 | 240.950 | 94557.952881
+Processed Answer (4): 340.296 |  14.349 | 359.329 |  67.967 | 202.681 | 69655.609131
+Processed Answer (5):  83.010 |  14.260 | 113.954 |  39.089 | 236.253 | 107091.522217
+Processed Answer (6): 104.465 |  17.006 | 124.280 |  36.741 | 226.857 | 84445.953369
 
 Ignore: 'altitude end'   for observer 3
 Ignore: 'desent_angle'   for observer 5

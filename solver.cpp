@@ -74,9 +74,9 @@ vec3d_t btree_flash_search(data_t &data) {
     return flash_pos + flash_pos_offset;
 }
 vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
-    vec3d_t flash_traj;
-    vec3d_t min_val {kx_min, ky_min, kz_min};
-    vec3d_t max_val {kx_max, ky_max, kz_max};
+    vec3d_t flash_traj = {0, 0, 0};
+    vec3d_t min_val {-1, -1, -1};
+    vec3d_t max_val {1, 1, 1};
     flash_traj.x = (min_val.x + max_val.x) / 2;
     flash_traj.y = (min_val.y + max_val.y) / 2;
     flash_traj.z = (min_val.z + max_val.z) / 2;
@@ -94,7 +94,7 @@ vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
                 correction.y = (max_val.y - min_val.y) / 10 * yi;
                 for (int zi = -1; zi <= 1; zi+=2) {
                     correction.z = (max_val.z - min_val.z) / 10 * zi;
-                    double error = data.rate_flash_traj(flash_pos, flash_traj + correction);
+                    double error = data.rate_flash_traj(flash_pos, (flash_traj + correction).normalized());
                     if (error < min_err) {
                         min_err = error;
                         best_index_x = xi;
@@ -164,6 +164,7 @@ int main() {
     data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
     flash_traj = btree_traj_search(data, flash_pos);
     double traj_error = data.rate_flash_traj(flash_pos, flash_traj);
+    vec3d_t flash_vel = data.get_glash_vel(flash_pos, flash_traj);
 
     printf("\nSummary on finding flash trajectory:\n");
     printf("    Total square-error (rad): %#9.6f\n", traj_error);
@@ -172,9 +173,11 @@ int main() {
 
 
     // Print answer
-    printf("\nAnswer: %8.5f %8.5f %8.5f %8.5f %8.5f %8.5f\n",
-            flash_pos.x*180/PI, flash_pos.y*180/PI, flash_pos.z,
-            flash_traj.x, flash_traj.y, flash_traj.z);
+    printf("\nAnswer:\n");
+    printf("  Location: %8.5f %8.5f %8.5f\n",
+            flash_pos.x*180/PI, flash_pos.y*180/PI, flash_pos.z);
+    printf("  Velocity: %8.5f %8.5f %8.5f\n",
+            flash_vel.x, flash_vel.y, flash_vel.z);
 
     // Print processed answer for each observer
     printf("\n                  i     z0        h0        zb        hb         A         t   \n");

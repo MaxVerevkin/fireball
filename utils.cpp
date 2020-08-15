@@ -55,14 +55,8 @@ __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
 // Calculate the azimuth given XYZ coordinates, North and East vectors.
 double azimuth(const vec3d_t &observer, const vec3d_t &point, const vec3d_t normal, double ob_lat, double ob_lon, double r) {
 
-    vec3d_t north = {0, 0, observer.z + 100};
-    if (observer.x)
-        north.x = (r - north.z*normal.z) / (normal.x + normal.y*observer.y/observer.x);
-    if (observer.y)
-        north.y = (r - north.z*normal.z) / (normal.x*observer.x/observer.y + normal.y);
-    north = north - observer;
-
-    vec3d_t east = vec3d_t {-sin(ob_lon), cos(ob_lon), 0};
+    vec3d_t north = north_vec(ob_lat, ob_lon);
+    vec3d_t east = east_vec(ob_lat, ob_lon);
 
     double zc = acos(point * north / point.length() / north.length());
     double cos_ze = point * east / point.length() / east.length();
@@ -94,4 +88,36 @@ double desent_angle(double h, double z, double h0, double z0) {
     if (sin_a < 0 and cos_a >= 0)
         return a + 2*PI;
     return PI - a;
+}
+
+// Calculate normal
+vec3d_t normal_vec(double lat, double lon) {
+    vec3d_t normal;
+    normal.x = cos(lat) * cos(lon);
+    normal.y = cos(lat) * sin(lon);
+    normal.z = sin(lat);
+    return normal;
+}
+
+// Genetare vector pointing to Notrh
+vec3d_t north_vec(double lat, double lon) {
+    return {-sin(lat)*cos(lon), -sin(lat)*sin(lon), cos(lat)};
+}
+
+// Genetare vector pointing to East
+vec3d_t east_vec(double lat, double lon) {
+    return {-sin(lon), cos(lon), 0};
+}
+
+// Translate global vector to local
+vec3d_t global_to_local(vec3d_t vec, double lat, double lon) {
+    vec3d_t north = north_vec(lat, lon);
+    vec3d_t east = east_vec(lat, lon);
+    vec3d_t normal = normal_vec(lat, lon);
+
+    vec3d_t ex = {east.x, north.x, normal.x};
+    vec3d_t ey = {east.y, north.y, normal.y};
+    vec3d_t ez = {east.z, north.z, normal.z};
+
+    return ex*vec.x + ey*vec.y + ez*vec.z;
 }

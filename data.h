@@ -36,6 +36,7 @@ struct data_t {
     alignas(16) double ob_zb[data_N] =     {OB_ZB};     // Azimuth begin
     alignas(16) double ob_hb[data_N] =     {OB_HB};     // Altitude begin
     alignas(16) double ob_a[data_N] =      {OB_A};      // Desent angle
+    alignas(16) double ob_t[data_N] =      {OB_T};      // Duration
     alignas(16) double ob_e[data_N] =      {OB_E};      // Experience
 
     // Observer's expected data given some answer
@@ -68,6 +69,11 @@ struct data_t {
      */
     void eliminate_inconsistent_flash_data(const vec3d_t &flash_geo);
     void eliminate_inconsistent_traj_data(const vec3d_t &flash_geo, const vec3d_t params);
+
+    /*
+     * Translate flash trajectory vector to local velocity.
+     */
+    vec3d_t get_glash_vel(const vec3d_t &flash_geo, const vec3d_t &traj);
 
 
     /*

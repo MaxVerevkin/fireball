@@ -45,9 +45,7 @@ data_t::data_t() {
         ob_pos[i] = geo_to_xyz(ob_lat[i], ob_lon[i], ob_height[i]);
 
         // Calculate normal
-        normal[i].x = cos(ob_lat[i]) * cos(ob_lon[i]);
-        normal[i].y = cos(ob_lat[i]) * sin(ob_lon[i]);
-        normal[i].z = sin(ob_lat[i]);
+        normal[i] = normal_vec(ob_lat[i], ob_lon[i]);
     }
 }
 
@@ -94,6 +92,17 @@ void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash_geo, const ve
         k_count += !k_hb[i] * ob_e[i];
         k_count += !k_a[i] * ob_e[i];
     }
+}
+
+/*
+ * Translate flash trajectory vector to local velocity.
+ */
+vec3d_t data_t::get_glash_vel(const vec3d_t &flash_geo, const vec3d_t &traj) {
+    vec3d_t vel = global_to_local(traj, flash_geo.x, flash_geo.y);
+    double k = 0;
+    for (int i = 0; i < data_N; i++)
+        k -= ex_data.t[0] / ob_t[i] / data_N;
+    return vel * k;
 }
 
 
@@ -243,17 +252,14 @@ void data_t::process_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params)
         // Binary search for 't'
         double min = T_SEARCH_MIN;
         double max = T_SEARCH_MAX;
-        ex_data.t[i] = (min+max) / 2;
         for (int j = 0; j < T_SEARCH_DEPTH; j++) {
-            double e1 = traj_error_i(flash_geo, params, ex_data.t[i]-.0001, i);
-            double e2 = traj_error_i(flash_geo, params, ex_data.t[i]+.0001, i);
-            if (e1 < e2) {
+            ex_data.t[i] = (min+max) / 2;
+            double e1 = traj_error_i(flash_geo, params, ex_data.t[i]-(max-min)/100, i);
+            double e2 = traj_error_i(flash_geo, params, ex_data.t[i]+(max-min)/100, i);
+            if (e1 < e2)
                 max = ex_data.t[i];
-                ex_data.t[i] = (min + ex_data.t[i]) / 2;
-            } else {
+            else
                 min = ex_data.t[i];
-                ex_data.t[i] = (ex_data.t[i] + max) / 2;
-            }
         }
         // Actually process current answer
         process_flash_traj_i(flash_geo, params, ex_data.t[i], i);
@@ -285,7 +291,7 @@ void data_t::process_flash_traj_i(const vec3d_t &flash_geo, const vec3d_t params
 }
 
 /*
- * Returns square-error the trajectory for current answer given 't'
+ * Returns square-error of trajectory for current answer given 't'
  */
 double data_t::traj_error_i(const vec3d_t &flash_geo, const vec3d_t params, double t, int i) {
     process_flash_traj_i(flash_geo, params, t, i);
