@@ -74,14 +74,14 @@ vec3d_t btree_flash_search(data_t &data) {
     return flash_pos + flash_pos_offset;
 }
 vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
-    vec3d_t flash_traj = {0, 0, 0};
     vec3d_t min_val {-1, -1, -1};
     vec3d_t max_val {1, 1, 1};
-    flash_traj.x = (min_val.x + max_val.x) / 2;
-    flash_traj.y = (min_val.y + max_val.y) / 2;
-    flash_traj.z = (min_val.z + max_val.z) / 2;
+    vec3d_t flash_traj;
 
     for (int i = 0; i < TRAJ_SEARCH_DEPTH; i++) {
+        flash_traj.x = (min_val.x + max_val.x) / 2;
+        flash_traj.y = (min_val.y + max_val.y) / 2;
+        flash_traj.z = (min_val.z + max_val.z) / 2;
 
         // Found combination of parameter's
         // changes that gives least error.
@@ -105,31 +105,22 @@ vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
             }
         }
 
-        if (best_index_x == -1) {
+        if (best_index_x == -1)
             max_val.x = (max_val.x +flash_traj.x) / 2;
-            flash_traj.x = (flash_traj.x + min_val.x) / 2;
-        } else if (best_index_x == 1) {
+        else if (best_index_x == 1)
             min_val.x = (min_val.x + flash_traj.x) / 2;
-            flash_traj.x = (flash_traj.x + max_val.x) / 2;
-        }
 
-        if (best_index_y == -1) {
+        if (best_index_y == -1)
             max_val.y = (max_val.y +flash_traj.y) / 2;
-            flash_traj.y = (flash_traj.y + min_val.y) / 2;
-        } else if (best_index_y == 1) {
+        else if (best_index_y == 1)
             min_val.y = (min_val.y + flash_traj.y) / 2;
-            flash_traj.y = (flash_traj.y + max_val.y) / 2;
-        }
 
-        if (best_index_z == -1) {
+        if (best_index_z == -1)
             max_val.z = (max_val.z +flash_traj.z) / 2;
-            flash_traj.z = (flash_traj.z + min_val.z) / 2;
-        } else if (best_index_z == 1) {
+        else if (best_index_z == 1)
             min_val.z = (min_val.z + flash_traj.z) / 2;
-            flash_traj.z = (flash_traj.z + max_val.z) / 2;
-        }
     }
-    return flash_traj;
+    return flash_traj.normalized();
 }
 
 
@@ -164,7 +155,7 @@ int main() {
     data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
     flash_traj = btree_traj_search(data, flash_pos);
     double traj_error = data.rate_flash_traj(flash_pos, flash_traj);
-    vec3d_t flash_vel = data.get_glash_vel(flash_pos, flash_traj);
+    vec3d_t flash_vel = data.get_flash_vel(flash_pos, flash_traj);
 
     printf("\nSummary on finding flash trajectory:\n");
     printf("    Total square-error (rad): %#9.6f\n", traj_error);

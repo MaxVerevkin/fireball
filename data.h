@@ -73,7 +73,7 @@ struct data_t {
     /*
      * Translate flash trajectory vector to local velocity.
      */
-    vec3d_t get_glash_vel(const vec3d_t &flash_geo, const vec3d_t &traj);
+    vec3d_t get_flash_vel(const vec3d_t &flash_geo, const vec3d_t &traj);
 
 
     /*
