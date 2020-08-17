@@ -1,7 +1,7 @@
 # About
 This program tries to reconstruct the trajectory and position of a fireball given observer's data.
 
-For now, data is defined in `data_values.h`. Soon the program will read it from a file.
+Program reads the data from a text file. The default is 'data.txt'. It can be overriden by passing a file name as an argument.
 
 Output on current test data looks something like that:
 ```

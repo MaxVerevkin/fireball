@@ -2,6 +2,9 @@
 #define STRUCTURES_H
 
 
+/*
+ * Vector 0f 3 doubles and some opertors.
+ */
 struct vec3d_t {
     double x, y, z;
 
@@ -17,5 +20,19 @@ struct vec3d_t {
     vec3d_t normalized() const;
 };
 
+
+/*
+ * Represents data given by observer.
+ */
+struct data_set_t {
+    alignas(16) double *z0;
+    alignas(16) double *h0;
+    alignas(16) double *zb;
+    alignas(16) double *hb;
+    alignas(16) double *a;
+    alignas(16) double *t;
+
+    data_set_t(int n);
+};
 
 #endif

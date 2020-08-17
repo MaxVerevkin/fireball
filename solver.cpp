@@ -127,8 +127,16 @@ vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
 /*
  * main
  */
-int main() {
-    data_t data;
+int main(int argc, char **argv) {
+
+    /////////////////
+    /// Init data ///
+    /////////////////
+
+    char *file = "data.txt";
+    if (argc > 1)
+        file = argv[1];
+    data_t data(file);
     printf("Data is initialized\n");
 
     
@@ -173,16 +181,16 @@ int main() {
 
     // Print processed answer for each observer
     printf("\n                  i     z0        h0        zb        hb         A         t   \n");
-    for (int i = 0; i < data_N; i++) {
+    for (int i = 0; i < data.data_N; i++) {
         printf("Processed Answer (%i): %#7.3f | %7.3f | %7.3f | %7.3f | %7.3f | %f\n", i+1,
-                data.ex_data.z0[i]*180/PI, data.ex_data.h0[i]*180/PI,
-                data.ex_data.zb[i]*180/PI, data.ex_data.hb[i]*180/PI,
-                data.ex_data.a[i]*180/PI, data.ex_data.t[i]);
+                data.ex_data->z0[i]*180/PI, data.ex_data->h0[i]*180/PI,
+                data.ex_data->zb[i]*180/PI, data.ex_data->hb[i]*180/PI,
+                data.ex_data->a[i]*180/PI, data.ex_data->t[i]);
     }
 
     // Print ignored data
     printf("\n");
-    for (int i = 0; i < data_N; i++) {
+    for (int i = 0; i < data.data_N; i++) {
         if (!data.k_z0[i])
             printf("Ignore: 'azimuth end'    for observer %i\n", i+1);
         if (!data.k_h0[i])

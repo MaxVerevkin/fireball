@@ -1,6 +1,5 @@
 #include "structs.h"
-
-#include <math.h>
+#include <cmath>
 
 
 // Dot product
@@ -28,4 +27,14 @@ double vec3d_t::length() const {
 
 vec3d_t vec3d_t::normalized() const {
     return *this/length();
+}
+
+
+data_set_t::data_set_t(int n) {
+    z0 = new double[n];
+    h0 = new double[n];
+    zb = new double[n];
+    hb = new double[n];
+    a =  new double[n];
+    t =  new double[n];
 }

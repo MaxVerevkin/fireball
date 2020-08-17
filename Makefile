@@ -10,7 +10,7 @@ paralel:
 
 solver.o: solver.cpp utils.h structs.h data.h hyperparams.h simd.h
 utils.o: utils.cpp utils.h structs.h simd.h
-data.o: data.cpp data.h utils.h structs.h hyperparams.h data_values.h simd.h
+data.o: data.cpp data.h utils.h structs.h hyperparams.h simd.h
 structs.o: structs.h
 
 clean:
