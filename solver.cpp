@@ -107,17 +107,17 @@ vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
 
         if (best_index_x == -1)
             max_val.x = (max_val.x +flash_traj.x) / 2;
-        else if (best_index_x == 1)
+        else
             min_val.x = (min_val.x + flash_traj.x) / 2;
 
         if (best_index_y == -1)
             max_val.y = (max_val.y +flash_traj.y) / 2;
-        else if (best_index_y == 1)
+        else
             min_val.y = (min_val.y + flash_traj.y) / 2;
 
         if (best_index_z == -1)
             max_val.z = (max_val.z +flash_traj.z) / 2;
-        else if (best_index_z == 1)
+        else
             min_val.z = (min_val.z + flash_traj.z) / 2;
     }
     return flash_traj.normalized();
@@ -133,10 +133,7 @@ int main(int argc, char **argv) {
     /// Init data ///
     /////////////////
 
-    char *file = "data.txt";
-    if (argc > 1)
-        file = argv[1];
-    data_t data(file);
+    data_t data(argc == 2 ? argv[1] : "data.txt");
     printf("Data is initialized\n");
 
     
