@@ -24,7 +24,8 @@ struct data_t {
     data_set_t *ex_data; // Data produced by answer
 
     // Additional variables
-    int k_count = 0;
+    int k_count_flash = 0;
+    int k_count_traj = 0;
     int data_Ne = 0;
     double mean_lat;
     double mean_lon;
