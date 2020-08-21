@@ -46,6 +46,12 @@ struct data_t {
     data_t(const char *file);
 
     /*
+     * Reset k-values to '1'
+     */
+    void reset_k_flash();
+    void reset_k_traj();
+
+    /*
      * Sets K=0 to all data which square-error is
      * max_error_k times greater than mean square-error
      */

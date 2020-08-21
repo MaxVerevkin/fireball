@@ -41,7 +41,7 @@ data_t::data_t(const char *file) {
 
     for (int i = 0; i < data_N; i++) {
         // Read from file
-        fscanf(infile, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+        fscanf(infile, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
                 ob_lat+i, ob_lon+i, ob_height+i,
                 ob_data->a+i, ob_data->zb+i, ob_data->hb+i,
                 ob_data->z0+i, ob_data->h0+i,
@@ -52,13 +52,6 @@ data_t::data_t(const char *file) {
 
         // Height relative to earth center
         r[i] = ob_height[i] + EARTH_R;
-
-        // Initialize K=1
-        k_z0[i] = 1;
-        k_h0[i] = 1;
-        k_zb[i] = 1;
-        k_hb[i] = 1;
-        k_a[i] = 1;
 
         // Translate
         ob_lat[i] *= PI / 180;
@@ -78,8 +71,39 @@ data_t::data_t(const char *file) {
         normal[i] = normal_vec(ob_lat[i], ob_lon[i]);
     }
 
+    // Set k=1
+    reset_k_flash();
+    reset_k_traj();
+
     // Close file
     fclose(infile);
+}
+
+
+/*
+ * Reset k-values to '1'
+ */
+void data_t::reset_k_flash() {
+    k_count_flash = 0;
+    for (int i = 0; i < data_N; i++) {
+        k_z0[i] = ob_data->z0[i] >= 0;
+        k_h0[i] = ob_data->h0[i] >= 0;
+
+        k_count_flash += !k_z0[i];
+        k_count_flash += !k_h0[i];
+    }
+}
+void data_t::reset_k_traj() {
+    k_count_traj = 0;
+    for (int i = 0; i < data_N; i++) {
+        k_zb[i] = ob_data->zb[i] >= 0;
+        k_hb[i] = ob_data->hb[i] >= 0;
+        k_a[i]  = ob_data->a[i]  >= 0;
+
+        k_count_traj += !k_zb[i];
+        k_count_traj += !k_hb[i];
+        k_count_traj += !k_a[i];
+    }
 }
 
 
@@ -88,42 +112,41 @@ data_t::data_t(const char *file) {
  * max_error_k times greater than mean square-error
  */
 void data_t::eliminate_inconsistent_flash_data(const vec3d_t &flash_geo) {
-    k_count_flash = 0;
-    for (int i = 0; i < data_N; i++) {
-        k_z0[i] = 1;
-        k_h0[i] = 1;
-    }
+    reset_k_flash();
 
     double mean_error = rate_flash_pos(flash_geo) / (data_Ne * 2 - k_count_flash);
     double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
-        k_z0[i] = !(pow(angle_delta(ex_data->z0[i], ob_data->z0[i]), 2) > max_error);
-        k_h0[i] = !(pow(angle_delta(ex_data->h0[i], ob_data->h0[i]), 2) > max_error);
-
-        k_count_flash += !k_z0[i] * ob_e[i];
-        k_count_flash += !k_h0[i] * ob_e[i];
+        if (ob_data->z0[i] >= 0) {
+            k_z0[i] = !(pow(angle_delta(ex_data->z0[i], ob_data->z0[i]), 2) > max_error);
+            k_count_flash += !k_z0[i] * ob_e[i];
+        }
+        if (ob_data->h0[i] >= 0) {
+            k_h0[i] = !(pow(angle_delta(ex_data->h0[i], ob_data->h0[i]), 2) > max_error);
+            k_count_flash += !k_h0[i] * ob_e[i];
+        }
     }
 }
 void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash_geo, const vec3d_t params) {
-    k_count_traj = 0;
-    for (int i = 0; i < data_N; i++) {
-        k_zb[i] = 1;
-        k_hb[i] = 1;
-        k_a[i] = 1;
-    }
+    reset_k_traj();
 
     double mean_error = rate_flash_traj(flash_geo, params) / (data_Ne * 3 - k_count_traj);
     double max_error = mean_error * MAX_ERROR;
 
     for (int i = 0; i < data_N; i++) {
-        k_zb[i] = !(pow(angle_delta(ex_data->zb[i], ob_data->zb[i]), 2) > max_error);
-        k_hb[i] = !(pow(angle_delta(ex_data->hb[i], ob_data->hb[i]), 2) > max_error);
-        k_a[i] =  !(pow(angle_delta(ex_data->a[i],  ob_data->a[i]), 2) > max_error);
-
-        k_count_traj += !k_zb[i] * ob_e[i];
-        k_count_traj += !k_hb[i] * ob_e[i];
-        k_count_traj += !k_a[i] *  ob_e[i];
+        if (ob_data->zb[i] >= 0) {
+            k_zb[i] = !(pow(angle_delta(ex_data->zb[i], ob_data->zb[i]), 2) > max_error);
+            k_count_traj += !k_zb[i] * ob_e[i];
+        }
+        if (ob_data->hb[i] >= 0) {
+            k_hb[i] = !(pow(angle_delta(ex_data->hb[i], ob_data->hb[i]), 2) > max_error);
+            k_count_traj += !k_hb[i] * ob_e[i];
+        }
+        if (ob_data->a[i] >= 0) {
+            k_a[i] = !(pow(angle_delta(ex_data->a[i], ob_data->a[i]), 2) > max_error);
+            k_count_traj += !k_a[i] * ob_e[i];
+        }
     }
 }
 
@@ -132,10 +155,40 @@ void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash_geo, const ve
  */
 vec3d_t data_t::get_flash_vel(const vec3d_t &flash_geo, const vec3d_t &traj) {
     vec3d_t vel = global_to_local(traj, flash_geo.x, flash_geo.y);
+
+    // Calculate mean 'k'
     double k = 0;
+    double n = 0;
+    for (int i = 0; i < data_N; i++) {
+        if (ob_data->t[i] > 0) {
+            k += ex_data->t[i] / ob_data->t[i];
+            n++;
+        }
+    }
+    k /= n;
+
+    // Calculate mean error
+    double mean_error = 0;
     for (int i = 0; i < data_N; i++)
-        k += ex_data->t[i] / ob_data->t[i];
-    return vel * (-k / data_N);
+        if (ob_data->t[i] > 0)
+            mean_error += pow(k - ex_data->t[i] / ob_data->t[i], 2);
+    mean_error /= n;
+
+    // Relculate 'k', ignoring inconsistent
+    k = 0;
+    n = 0;
+    for (int i = 0; i < data_N; i++) {
+        if (ob_data->t[i] > 0) {
+            double ki = ex_data->t[i] / ob_data->t[i];
+            if (pow(k-ki ,2) < mean_error*MAX_ERROR) {
+                k += ki;
+                n++;
+            }
+        }
+    }
+    k /= n;
+
+    return vel * (-k);
 }
 
 

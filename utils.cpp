@@ -78,6 +78,9 @@ double desent_angle(double h, double z, double h0, double z0) {
     double cos_a = (sin(h0) - sin(h)*cos_l) / (cos(h) * sin_l);
     double a = asin(sin_a);
 
+    if (isnan(a))
+        return 0;
+
     // Decide
     if (cos_a < 0)
         return PI - a;
