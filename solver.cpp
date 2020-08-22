@@ -42,7 +42,7 @@ vec3d_t btree_flash_search(data_t &data) {
         for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
             flash_pos.y = (min_val.y + max_val.y) / 2;
 
-            vec3d_t correction {0, (max_val.y - min_val.y) / 1000, 0};
+            vec3d_t correction {0, (max_val.y - min_val.y) / 100, 0};
             double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
             double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
 
@@ -171,10 +171,12 @@ int main(int argc, char **argv) {
 
     // Print answer
     printf("\nAnswer:\n");
-    printf("  Location: %8.5f %8.5f %8.5f\n",
-            flash_pos.x*180/PI, flash_pos.y*180/PI, flash_pos.z);
-    printf("  Velocity: %8.5f %8.5f %8.5f\n",
-            flash_vel.x, flash_vel.y, flash_vel.z);
+    printf("    lat =  %8.5f°\n", flash_pos.x*180/PI);
+    printf("    lon =  %8.5f°\n", flash_pos.y*180/PI);
+    printf("    z   =  %8.5f(km)\n", flash_pos.z/1000);
+    printf("    vx  =  %8.5f(km/s)\n", flash_vel.x/1000);
+    printf("    vy  =  %8.5f(km/s)\n", flash_vel.y/1000);
+    printf("    vz  =  %8.5f(km/s)\n", flash_vel.z/1000);
 
     // Print processed answer for each observer
     printf("\n                  i     z0        h0        zb        hb         A         t   \n");

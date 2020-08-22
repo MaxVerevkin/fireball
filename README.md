@@ -21,17 +21,17 @@ Answer:
     lat =  35.23692°
     lon =  33.46764°
     z   =  17.04548(km)
-    vx  =       nan(km/s)
-    vy  =       nan(km/s)
-    vz  =       nan(km/s)
+    vx  =  -11.97867(km/s)
+    vy  =  19.31715(km/s)
+    vz  =  -26.39596(km/s)
 
-                  i     z0        h0        zb        hb         A         t
-Processed Answer (1):  50.545 |  13.511 |  82.920 |  40.218 | 235.950 | nan
-Processed Answer (2):  51.986 |  39.925 | 129.963 |  54.496 | 287.929 | nan
-Processed Answer (3):  34.009 |  12.603 |  78.009 |  48.076 | 240.950 | nan
-Processed Answer (4): 340.296 |  14.349 | 359.327 |  67.966 | 202.680 | nan
-Processed Answer (5):  83.010 |  14.260 | 113.954 |  39.090 | 236.253 | nan
-Processed Answer (6): 104.465 |  17.006 | 124.280 |  36.741 | 226.857 | nan
+                  i     z0        h0        zb        hb         A         t   
+Processed Answer (1):  50.545 |  13.511 |  82.920 |  40.218 | 235.950 | 1.691117
+Processed Answer (2):  51.986 |  39.925 | 129.963 |  54.496 | 287.929 | 2.708486
+Processed Answer (3):  34.009 |  12.603 |  78.009 |  48.076 | 240.950 | 2.286620
+Processed Answer (4): 340.296 |  14.349 | 359.327 |  67.966 | 202.680 | 1.684383
+Processed Answer (5):  83.010 |  14.260 | 113.954 |  39.090 | 236.253 | 2.589706
+Processed Answer (6): 104.465 |  17.006 | 124.280 |  36.741 | 226.857 | 2.042091
 
 Ignore: 'altitude end'   for observer 3
 Ignore: 'desent_angle'   for observer 5

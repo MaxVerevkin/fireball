@@ -157,30 +157,30 @@ vec3d_t data_t::get_flash_vel(const vec3d_t &flash_geo, const vec3d_t &traj) {
     vec3d_t vel = global_to_local(traj, flash_geo.x, flash_geo.y);
 
     // Calculate mean 'k'
-    double k = 0;
+    double mean_k = 0;
     double n = 0;
     for (int i = 0; i < data_N; i++) {
         if (ob_data->t[i] > 0) {
-            k += ex_data->t[i] / ob_data->t[i];
+            mean_k += ex_data->t[i] / ob_data->t[i];
             n++;
         }
     }
-    k /= n;
+    mean_k /= n;
 
     // Calculate mean error
     double mean_error = 0;
     for (int i = 0; i < data_N; i++)
         if (ob_data->t[i] > 0)
-            mean_error += pow(k - ex_data->t[i] / ob_data->t[i], 2);
+            mean_error += pow(mean_k - ex_data->t[i] / ob_data->t[i], 2);
     mean_error /= n;
 
     // Relculate 'k', ignoring inconsistent
-    k = 0;
+    double k = 0;
     n = 0;
     for (int i = 0; i < data_N; i++) {
         if (ob_data->t[i] > 0) {
             double ki = ex_data->t[i] / ob_data->t[i];
-            if (pow(k-ki ,2) < mean_error*MAX_ERROR) {
+            if (pow(mean_k-ki ,2) < mean_error*MAX_ERROR) {
                 k += ki;
                 n++;
             }
