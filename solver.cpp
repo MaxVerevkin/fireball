@@ -147,9 +147,9 @@ int main(int argc, char **argv) {
     double flash_error = data.rate_flash_pos(flash_pos);
 
     printf("\nSummary on finding flash position:\n");
-    printf("    Total square-error (rad): %#9.6f\n", flash_error);
-    printf("    Mean square-error  (rad): %#9.6f\n", flash_error / (data.data_Ne * 2 - data.k_count_flash));
-    printf("    Standard error     (deg): %#9.6f\n", sqrt(flash_error / (data.data_Ne * 2 - data.k_count_flash))/PI*180);
+    printf("    Total square-error         : %#9.6f rad\n", flash_error);
+    double n = data.data_Ne * 2 - data.k_count_flash;
+    printf("    Standard deviation of meaan: %#9.6f°\n", sqrt(flash_error / n / (n-1))/PI*180);
 
 
     ///////////////////////////////
@@ -164,9 +164,9 @@ int main(int argc, char **argv) {
     data.normalize_t(flash_vel);
 
     printf("\nSummary on finding flash trajectory:\n");
-    printf("    Total square-error (rad): %#9.6f\n", traj_error);
-    printf("    Mean square-error  (rad): %#9.6f\n", traj_error / (data.data_Ne * 3 - data.k_count_traj));
-    printf("    Standard error     (deg): %#9.6f\n", sqrt(traj_error / (data.data_Ne * 3 - data.k_count_traj))/PI*180);
+    printf("    Total square-error:          %#9.6f rad\n", traj_error);
+    n = data.data_Ne * 3 - data.k_count_traj;
+    printf("    Standard deviation of meaan: %#9.6f°\n", sqrt(traj_error / n / (n-1))/PI*180);
 
 
     // Print answer
@@ -189,20 +189,31 @@ int main(int argc, char **argv) {
 
     // Print ignored data
     printf("\n");
+    int n_ignored = 0;
     for (int i = 0; i < data.data_N; i++) {
-        if (!data.k_z0[i])
+        if (!data.k_z0[i] && data.ob_data->z0[i] >= 0) {
             printf("Ignore: 'azimuth end'    for observer %i\n", i+1);
-        if (!data.k_h0[i])
+            n_ignored++;
+        }
+        if (!data.k_h0[i] && data.ob_data->h0[i] >= 0) {
             printf("Ignore: 'altitude end'   for observer %i\n", i+1);
-        if (!data.k_zb[i])
+            n_ignored++;
+        }
+        if (!data.k_zb[i] && data.ob_data->zb[i] >= 0) {
             printf("Ignore: 'azimuth begin'  for observer %i\n", i+1);
-        if (!data.k_hb[i])
+            n_ignored++;
+        }
+        if (!data.k_hb[i] && data.ob_data->hb[i] >= 0) {
             printf("Ignore: 'altitude begin' for observer %i\n", i+1);
-        if (!data.k_a[i])
+            n_ignored++;
+        }
+        if (!data.k_a[i] && data.ob_data->a[i] >= 0) {
             printf("Ignore: 'desent_angle'   for observer %i\n", i+1);
+            n_ignored++;
+        }
     }
+    printf("Total ingored: %i\n\n", n_ignored);
 
     // Exit
-    printf("\n");
     return 0;
 }

@@ -7,10 +7,16 @@
 #define HYPERPARAMS_H
 
 
-#define MAX_ERROR 5
+#define MAX_ERROR 3
+
+#define DELTA_Z0_W 1.
+#define DELTA_H0_W .5
+#define DELTA_ZB_W 1.
+#define DELTA_HB_W .5
+#define DELTA_A_W 1.5
 
 #define T_SEARCH_DEPTH 25
-#define T_SEARCH_MIN 0
+#define T_SEARCH_MIN 10000
 #define T_SEARCH_MAX 300000
 
 #define FLASH_SEARCH_DEPTH 45

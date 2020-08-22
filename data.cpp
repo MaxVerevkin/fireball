@@ -208,62 +208,47 @@ void data_t::normalize_t(const vec3d_t &flash_vel) {
 double data_t::rate_flash_pos(const vec3d_t &flash_geo) {
     process_flash_pos(flash_geo);
 
-    __m128d error = _mm_setzero_pd();
-    __m128d err;
-    __m128d K;
-
+    __m128d total_error = _mm_setzero_pd();
     for (int i = 0; i+1 < data_N; i+=2) {
-        err = angle_delta_sq_pd(ob_data->z0 + i, ex_data->z0 + i); // err = sq_delta(ob_z0, ex_data->z0)
-        K = _mm_load_pd(k_z0 + i);                       // K = k_z0
-        err = _mm_mul_pd(err, K);                        // err *= K
-        K = _mm_load_pd(ob_e + i);                       // K = ob_e
-        err = _mm_mul_pd(err, K);                        // err *= K
-        error = _mm_add_pd(error, err);                  // error += err
 
-        err = angle_delta_sq_pd(ob_data->h0 + i, ex_data->h0 + i);
-        K = _mm_load_pd(k_h0 + i);
-        err = _mm_mul_pd(err, K);
-        K = _mm_load_pd(ob_e + i);
-        err = _mm_mul_pd(err, K);
-        error = _mm_add_pd(error, err);
+        __m128d err1 = _mm_mul_pd(_mm_load_pd(k_h0 + i), _mm_set1_pd(DELTA_H0_W));    // err1 = k_h0 * DELTA_H0_W
+        err1 = _mm_mul_pd(err1, angle_delta_sq_pd(ob_data->h0 + i, ex_data->h0 + i)); // err1 *= sq_delta(ob_h0, ex_data->h0)
+
+        __m128d err2 = _mm_mul_pd(_mm_load_pd(k_z0 + i), _mm_set1_pd(DELTA_Z0_W));    // err1 = k_z0 * DELTA_Z0_W
+        err2 = _mm_mul_pd(err2, angle_delta_sq_pd(ob_data->z0 + i, ex_data->z0 + i)); // err2 *= sq_delta(ob_z0, ex_data->z0)
+
+        err1 = _mm_add_pd(err1, err2);                  // err1 += err2
+        err1 = _mm_mul_pd(err1, _mm_load_pd(ob_e + i)); // err1 *= ob_e
+        total_error = _mm_add_pd(total_error, err1);    // total_error += err1
     }
 
     double x[2];
-    _mm_storeu_pd(x, error);
+    _mm_storeu_pd(x, total_error);
     return x[0] + x[1];
 }
 double data_t::rate_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params) {
     process_flash_traj(flash_geo, params);
 
-    __m128d error = _mm_setzero_pd();
-    __m128d err;
-    __m128d K;
-
+    __m128d total_error = _mm_setzero_pd();
     for (int i = 0; i+1 < data_N; i+=2) {
-        err = angle_delta_sq_pd(ob_data->zb + i, ex_data->zb + i);
-        K = _mm_load_pd(k_zb + i);
-        err = _mm_mul_pd(err, K);
-        K = _mm_load_pd(ob_e + i);
-        err = _mm_mul_pd(err, K);
-        error = _mm_add_pd(error, err);
 
-        err = angle_delta_sq_pd(ob_data->hb + i, ex_data->hb + i);
-        K = _mm_load_pd(k_hb + i);
-        err = _mm_mul_pd(err, K);
-        K = _mm_load_pd(ob_e + i);
-        err = _mm_mul_pd(err, K);
-        error = _mm_add_pd(error, err);
+        __m128d err1 = _mm_mul_pd(_mm_load_pd(k_hb + i), _mm_set1_pd(DELTA_HB_W));    // err1 = k_hb * DELTA_HB_W
+        err1 = _mm_mul_pd(err1, angle_delta_sq_pd(ob_data->hb + i, ex_data->hb + i)); // err1 *= sq_delta(ob_hb, ex_data->hb)
 
-        err = angle_delta_sq_pd(ob_data->a + i, ex_data->a + i);
-        K = _mm_load_pd(k_a + i);
-        err = _mm_mul_pd(err, K);
-        K = _mm_load_pd(ob_e + i);
-        err = _mm_mul_pd(err, K);
-        error = _mm_add_pd(error, err);
+        __m128d err2 = _mm_mul_pd(_mm_load_pd(k_zb + i), _mm_set1_pd(DELTA_ZB_W));    // err2 = k_zb * DELTA_ZB_W
+        err2 = _mm_mul_pd(err2, angle_delta_sq_pd(ob_data->zb + i, ex_data->zb + i)); // err2 *= sq_delta(ob_zb, ex_data->zb)
+
+        __m128d err3 = _mm_mul_pd(_mm_load_pd(k_a + i), _mm_set1_pd(DELTA_A_W));    // err3 = k_a * DELTA_A_W
+        err3 = _mm_mul_pd(err3, angle_delta_sq_pd(ob_data->a + i, ex_data->a + i)); // err3 *= sq_delta(ob_a, ex_data->a)
+
+        err1 = _mm_add_pd(err1, err2);                  // err1 += err2
+        err1 = _mm_add_pd(err1, err3);                  // err1 += err3
+        err1 = _mm_mul_pd(err1, _mm_load_pd(ob_e + i)); // err1 *= ob_e
+        total_error = _mm_add_pd(total_error, err1);    // total_error += err1
     }
 
     double x[2];
-    _mm_storeu_pd(x, error);
+    _mm_storeu_pd(x, total_error);
     return x[0] + x[1];
 }
 
