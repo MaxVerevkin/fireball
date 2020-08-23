@@ -38,17 +38,17 @@ __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
     __m128d a1 = _mm_load_pd(addr1);
     __m128d a2 = _mm_load_pd(addr2);
 
-    a1 = _mm_sub_pd(a1, a2); // a1 = delta
-    a2 = abs_pd(a1);         // a2 = abs(delta)
+    // Abs delta
+    __m128d delta = abs_pd(a1 - a2);
 
-    __m128d a3 = _mm_sub_pd(__2pi, a2); // a3 = 360 - abs(delta)
-    __m128d a4 = _mm_sub_pd(__pi, a2);  // a4 = 180 - abs(delta)
+    a1 = __2pi - delta; // a1 = 360 - delta
+    a2 = __pi  - delta; // a2 = 180 - delta
 
     // if (abs(delta) > 180)
     //     a1 = 360 - abs(delta);
-    a1 = _mm_blendv_pd(a1, a3, a4);
+    delta = _mm_blendv_pd(delta, a1, a2);
 
-    return _mm_mul_pd(a1, a1); // return a1^2
+    return delta * delta; // return a1^2
 }
 
 
