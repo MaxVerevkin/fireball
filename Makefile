@@ -8,6 +8,9 @@ all: $(OBJECTS)
 paralel:
 	$(MAKE) CXXFLAGS="-O3 -mavx2 -Wall -fopenmp -DOP_PARALEL" LDFLAGS="-fopenmp"
 
+profile:
+	$(MAKE) CXXFLAGS="-O3 -mavx2 -Wall -pg" LDFLAGS="-pg"
+
 solver.o: solver.cpp utils.h structs.h data.h hyperparams.h simd.h
 utils.o: utils.cpp utils.h structs.h simd.h
 data.o: data.cpp data.h utils.h structs.h hyperparams.h simd.h
