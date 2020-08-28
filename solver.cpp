@@ -2,6 +2,8 @@
 #include "data.h"
 #include "hyperparams.h"
 
+#include <random>
+
 
 /*
  * Run binary-tree-like search in 3D value-space.
@@ -17,53 +19,54 @@ vec3d_t btree_flash_search(data_t &data) {
     //
     // An offset (mean of observer's values)
     // is added to get real value.
+
     vec3d_t min_val {-PI/18, -PI/18, z0_min};
     vec3d_t max_val { PI/18,  PI/18, z0_max};
-    vec3d_t flash_pos = {0, 0, (min_val.z + max_val.z) / 2};
+    vec3d_t flash_pos = {0, 0, (min_val.z + max_val.z) * .5};
     vec3d_t flash_pos_offset {data.mean_lat, data.mean_lon, 0};
 
     for (int i = 0; i < FLASH_SEARCH_N; i++) {
 
         // X
         for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
-            flash_pos.x = (min_val.x + max_val.x) / 2;
+            flash_pos.x = (min_val.x + max_val.x) * .5;
 
-            vec3d_t correction = {(max_val.x - min_val.x) / 100, 0, 0};
+            vec3d_t correction = {(max_val.x - min_val.x) * .01, 0, 0};
             double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
             double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
 
             if (e1 < e2)
-                max_val.x = (max_val.x + flash_pos.x) / 2;
+                max_val.x = (max_val.x + flash_pos.x) * .5;
             else
-                min_val.x = (min_val.x + flash_pos.x) / 2;
+                min_val.x = (min_val.x + flash_pos.x) * .5;
         }
 
         // Y
         for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
-            flash_pos.y = (min_val.y + max_val.y) / 2;
+            flash_pos.y = (min_val.y + max_val.y) * .5;
 
-            vec3d_t correction {0, (max_val.y - min_val.y) / 100, 0};
+            vec3d_t correction {0, (max_val.y - min_val.y) * .01, 0};
             double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
             double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
 
             if (e1 < e2)
-                max_val.y = (max_val.y + flash_pos.y) / 2;
+                max_val.y = (max_val.y + flash_pos.y) * .5;
             else
-                min_val.y = (min_val.y + flash_pos.y) / 2;
+                min_val.y = (min_val.y + flash_pos.y) * .5;
         }
 
         // Z
         for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
-            flash_pos.z = (min_val.z + max_val.z) / 2;
+            flash_pos.z = (min_val.z + max_val.z) * .5;
 
-            vec3d_t correction = {0, 0, (max_val.z - min_val.z) / 100};
+            vec3d_t correction = {0, 0, (max_val.z - min_val.z) * .01};
             double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
             double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
 
             if (e1 < e2)
-                max_val.z = (max_val.z + flash_pos.z) / 2;
+                max_val.z = (max_val.z + flash_pos.z) * .5;
             else
-                min_val.z = (min_val.z + flash_pos.z) / 2;
+                min_val.z = (min_val.z + flash_pos.z) * .5;
         }
 
         // Reset bounds
@@ -73,54 +76,28 @@ vec3d_t btree_flash_search(data_t &data) {
     }
     return flash_pos + flash_pos_offset;
 }
+
+inline vec3d_t gen_vec(double z, double theta) {
+    double r = sqrt(1. - z*z);
+    return {cos(theta) * r, sin(theta) * r, z};
+}
 vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
-    vec3d_t min_val {-1, -1, -1};
-    vec3d_t max_val {1, 1, 1};
-    vec3d_t flash_traj;
+    std::default_random_engine e;
+    std::normal_distribution<double> rand(0.,1.);
+    double best_error = INFINITY;
+    vec3d_t best_ans;
 
-    for (int i = 0; i < TRAJ_SEARCH_DEPTH; i++) {
-        flash_traj.x = (min_val.x + max_val.x) / 2;
-        flash_traj.y = (min_val.y + max_val.y) / 2;
-        flash_traj.z = (min_val.z + max_val.z) / 2;
+    for (int i = 0; i < 4000; i++) {
+        vec3d_t traj = {rand(e), rand(e), rand(e)};
+        traj = traj.normalized();
 
-        // Found combination of parameter's
-        // changes that gives least error.
-        double min_err = INFINITY;
-        int best_index_x=0, best_index_y=0, best_index_z=0;
-        vec3d_t correction;
-        for (int xi = -1; xi <= 1; xi+=2) {
-            correction.x = (max_val.x - min_val.x) / 10 * xi;
-            for (int yi = -1; yi <= 1; yi+=2) {
-                correction.y = (max_val.y - min_val.y) / 10 * yi;
-                for (int zi = -1; zi <= 1; zi+=2) {
-                    correction.z = (max_val.z - min_val.z) / 10 * zi;
-                    double error = data.rate_flash_traj(flash_pos, (flash_traj + correction).normalized());
-                    if (error < min_err) {
-                        min_err = error;
-                        best_index_x = xi;
-                        best_index_y = yi;
-                        best_index_z = zi;
-                    }
-                }
-            }
+        double error = data.rate_flash_traj(flash_pos, traj);
+        if (error < best_error) {
+            best_error = error;
+            best_ans = traj;
         }
-
-        if (best_index_x == -1)
-            max_val.x = (max_val.x +flash_traj.x) / 2;
-        else
-            min_val.x = (min_val.x + flash_traj.x) / 2;
-
-        if (best_index_y == -1)
-            max_val.y = (max_val.y +flash_traj.y) / 2;
-        else
-            min_val.y = (min_val.y + flash_traj.y) / 2;
-
-        if (best_index_z == -1)
-            max_val.z = (max_val.z +flash_traj.z) / 2;
-        else
-            min_val.z = (min_val.z + flash_traj.z) / 2;
     }
-    return flash_traj.normalized();
+    return best_ans;
 }
 
 
@@ -171,12 +148,19 @@ int main(int argc, char **argv) {
 
     // Print answer
     printf("\nAnswer:\n");
+    printf("Location:\n");
     printf("    lat =  %8.5f°\n", flash_pos.x*180/PI);
     printf("    lon =  %8.5f°\n", flash_pos.y*180/PI);
     printf("    z   =  %8.5f(km)\n", flash_pos.z/1000);
-    printf("    vx  =  %8.5f(km/s)\n", flash_vel.x/1000);
-    printf("    vy  =  %8.5f(km/s)\n", flash_vel.y/1000);
-    printf("    vz  =  %8.5f(km/s)\n", flash_vel.z/1000);
+    printf("Local velocity:\n");
+    printf("    v_East  =  %8.5f(km/s)\n", flash_vel.x/1000);
+    printf("    v_North =  %8.5f(km/s)\n", flash_vel.y/1000);
+    printf("    v_z     =  %8.5f(km/s)\n", flash_vel.z/1000);
+    printf("Global inverse trajectory coefficients:\n");
+    printf("    kx = %8.5f\n", flash_traj.x);
+    printf("    ky = %8.5f\n", flash_traj.y);
+    printf("    kz = %8.5f\n", flash_traj.z);
+
 
     // Print processed answer for each observer
     printf("\n                  i     z0        h0        zb        hb         A         t   \n");
