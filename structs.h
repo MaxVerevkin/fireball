@@ -3,7 +3,19 @@
 
 
 /*
- * Vector 0f 3 doubles and some opertors.
+ * Vector of 2 doubles and some opertors.
+ */
+struct vec2d_t {
+    double x, y;
+
+    vec2d_t operator*(double a) const;
+    vec2d_t operator+(const vec2d_t &vec) const;
+    vec2d_t operator-(const vec2d_t &vec) const;
+};
+
+
+/*
+ * Vector of 3 doubles and some opertors.
  */
 struct vec3d_t {
     double x, y, z;
