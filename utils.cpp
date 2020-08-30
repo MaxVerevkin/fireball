@@ -51,6 +51,11 @@ __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
     return delta * delta; // return a1^2
 }
 
+// Calculate tje length of arc on a sphere
+double arc_len(double h1, double z1, double h2, double z2) {
+    double cos_l = sin(h1)*sin(h2) + cos(h1)*cos(h2)*cos(z1-z2);
+    return acos(cos_l);
+}
 
 // Calculate the azimuth given XYZ coordinates, North and East vectors.
 double azimuth(const vec3d_t &point, const vec3d_t normal, double ob_lat, double ob_lon, double r) {
