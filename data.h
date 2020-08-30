@@ -24,7 +24,8 @@ struct data_t {
     data_set_t *ex_data; // Data produced by answer
 
     // Additional variables
-    int k_count_flash = 0;
+    int k_count_z0 = 0;
+    int k_count_h0 = 0;
     int k_count_traj = 0;
     int data_Ne = 0;
     double mean_lat;
@@ -48,15 +49,17 @@ struct data_t {
     /*
      * Reset k-values to '1'
      */
-    void reset_k_flash();
+    void reset_k_z0();
+    void reset_k_h0();
     void reset_k_traj();
 
     /*
      * Sets K=0 to all data which square-error is
      * max_error_k times greater than mean square-error
      */
-    void eliminate_inconsistent_flash_data(const vec3d_t &flash_geo);
-    void eliminate_inconsistent_traj_data(const vec3d_t &flash_geo, const vec3d_t params);
+    void eliminate_inconsistent_z0(const vec2d_t &flash_geo);
+    void eliminate_inconsistent_h0(const vec3d_t &flash_geo);
+    void eliminate_inconsistent_traj_data(const vec3d_t &flash_pos, const vec3d_t params);
 
     /*
      * Translate flash trajectory vector to local velocity.
@@ -72,32 +75,34 @@ struct data_t {
     /*
      * Return square-error of a given answer.
      */
-    double rate_flash_pos(const vec3d_t &flash_geo);
-    double rate_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params);
+    double rate_z0(const vec2d_t &flash_geo);
+    double rate_h0(const vec3d_t &flash_geo);
+    double rate_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params);
 
     /*
      * Return sigma (standard deviation)
      * of a given answer.
      */
     //vec3d_t sigma_flash_pos(const vec3d_t &flash_geo);
-    //vec3d_t sigma_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params);
+    //vec3d_t sigma_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params);
 
 
     /*
      * Fills in the 'expected' values.
      */
-    void process_flash_pos(const vec3d_t &flash_geo);
-    void process_flash_traj(const vec3d_t &flash_geo, const vec3d_t &params);
+    void process_z0(const vec2d_t &flash_geo);
+    void process_h0(const vec3d_t &flash_geo);
+    void process_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params);
 
     /*
      * Proceese answer for the trajectory for one observer given 't'.
      */
-    void process_flash_traj_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i);
+    void process_flash_traj_i(const vec3d_t &flash_pos, const vec3d_t params, double t, int i);
 
     /*
      * Returns square-error the trajectory for current answer given 't'
      */
-    double traj_error_i(const vec3d_t &rel_flash, const vec3d_t params, double t, int i);
+    double traj_error_i(const vec3d_t &flash_pos, const vec3d_t params, double t, int i);
 };
 
 

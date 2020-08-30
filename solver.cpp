@@ -6,75 +6,79 @@
 
 
 /*
- * Run binary-tree-like search in 3D value-space.
+ * Run binary-tree-like search.
  */
-vec3d_t btree_flash_search(data_t &data) {
+vec2d_t btree_flash_2d_search(data_t &data) {
 
     // For the search, latitude and longitude
-    // are defined between -10 and 10 degrees.
-    // This 10 degrees are calculated with:
-    //      a = acos(R/(R+h)),
+    // are defined in rangle of 20 degrees.
+    //
+    // This 20 degrees are calculated with:
+    //      a = 2 * acos(R/(R+h)),
     // where R - radius of Earth
     //       h - maximum height of flash
     //
-    // An offset (mean of observer's values)
-    // is added to get real value.
+    // TODO get latitude into account.
 
-    vec3d_t min_val {-PI/18, -PI/18, z0_min};
-    vec3d_t max_val { PI/18,  PI/18, z0_max};
-    vec3d_t flash_pos = {0, 0, (min_val.z + max_val.z) * .5};
-    vec3d_t flash_pos_offset {data.mean_lat, data.mean_lon, 0};
+    vec2d_t min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
+    vec2d_t max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
+    vec2d_t pos = (min_val + max_val) * .5;
 
-    for (int i = 0; i < FLASH_SEARCH_N; i++) {
+    for (int i = 0; i < FLASH_2D_SEARCH_N; i++) {
 
-        // X
-        for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
-            flash_pos.x = (min_val.x + max_val.x) * .5;
-
-            vec3d_t correction = {(max_val.x - min_val.x) * .01, 0, 0};
-            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
-            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
+        // Lat
+        for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
+            vec2d_t correction = {(max_val.x - min_val.x) * .01, 0};
+            double e1 = data.rate_z0(pos - correction);
+            double e2 = data.rate_z0(pos + correction);
 
             if (e1 < e2)
-                max_val.x = (max_val.x + flash_pos.x) * .5;
+                max_val.x = pos.x;
             else
-                min_val.x = (min_val.x + flash_pos.x) * .5;
+                min_val.x = pos.x;
+
+            pos.x = (min_val.x + max_val.x) * .5;
         }
-
-        // Y
-        for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
-            flash_pos.y = (min_val.y + max_val.y) * .5;
-
-            vec3d_t correction {0, (max_val.y - min_val.y) * .01, 0};
-            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
-            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
+        // Lon
+        for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
+            vec2d_t correction = {0, (max_val.y - min_val.y) * .01};
+            double e1 = data.rate_z0(pos - correction);
+            double e2 = data.rate_z0(pos + correction);
 
             if (e1 < e2)
-                max_val.y = (max_val.y + flash_pos.y) * .5;
+                max_val.y = pos.y;
             else
-                min_val.y = (min_val.y + flash_pos.y) * .5;
+                min_val.y = pos.y;
+            
+            pos.y = (min_val.y + max_val.y) * .5;
         }
-
-        // Z
-        for (int j = 0; j < FLASH_SEARCH_DEPTH; j++) {
-            flash_pos.z = (min_val.z + max_val.z) * .5;
-
-            vec3d_t correction = {0, 0, (max_val.z - min_val.z) * .01};
-            double e1 = data.rate_flash_pos(flash_pos + flash_pos_offset - correction);
-            double e2 = data.rate_flash_pos(flash_pos + flash_pos_offset + correction);
-
-            if (e1 < e2)
-                max_val.z = (max_val.z + flash_pos.z) * .5;
-            else
-                min_val.z = (min_val.z + flash_pos.z) * .5;
-        }
-
+        
         // Reset bounds
-        min_val = {-PI/18, -PI/18, z0_min};
-        max_val = { PI/18,  PI/18, z0_max};
-
+        min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
+        max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
     }
-    return flash_pos + flash_pos_offset;
+
+    return pos;
+}
+vec3d_t btree_flash_3d_search(data_t &data, const vec2d_t flash_2d) {
+    double min_val = z0_min;
+    double max_val = z0_max;
+    vec3d_t pos = {flash_2d.x, flash_2d.y, (min_val + max_val) * .5};
+
+    for (int i = 0; i < FLASH_3D_SEARCH_DEPTH; i++) {
+        vec3d_t correction = {0, 0, (max_val - min_val) * .01};
+        double e1 = data.rate_h0(pos - correction);
+        double e2 = data.rate_h0(pos + correction);
+
+        if (e1 < e2)
+            max_val = pos.z;
+        else
+            min_val = pos.z;
+
+        pos.z = (min_val + max_val) * .5;
+    }
+
+    return pos;
 }
 
 inline vec3d_t gen_vec(double z, double theta) {
@@ -87,7 +91,7 @@ vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
     double best_error = INFINITY;
     vec3d_t best_ans;
 
-    for (int i = 0; i < 4000; i++) {
+    for (int i = 0; i < 700; i++) {
         vec3d_t traj = {rand(e), rand(e), rand(e)};
         traj = traj.normalized();
 
@@ -118,15 +122,23 @@ int main(int argc, char **argv) {
     /// Find flash position ///
     ///////////////////////////
 
-    vec3d_t flash_pos = btree_flash_search(data);
-    data.eliminate_inconsistent_flash_data(flash_pos);
-    flash_pos = btree_flash_search(data);
-    double flash_error = data.rate_flash_pos(flash_pos);
+    // (lat, lon) coordinates
+    vec2d_t flash_geo = btree_flash_2d_search(data);
+    data.eliminate_inconsistent_z0(flash_geo);
+    flash_geo = btree_flash_2d_search(data);
+
+    // height
+    vec3d_t flash_pos_geo = btree_flash_3d_search(data, flash_geo);
+    data.eliminate_inconsistent_h0(flash_pos_geo);
+    flash_pos_geo = btree_flash_3d_search(data, flash_geo);
+    vec3d_t flash_pos = geo_to_xyz(flash_pos_geo);
+
+    double flash_pos_error = data.rate_z0(flash_geo) + data.rate_h0(flash_pos_geo);
+    double n = data.data_Ne*2 - data.k_count_z0 - data.k_count_h0;
 
     printf("\nSummary on finding flash position:\n");
-    printf("    Total square-error         : %#9.6f rad\n", flash_error);
-    double n = data.data_Ne * 2 - data.k_count_flash;
-    printf("    Standard deviation of meaan: %#9.6f°\n", sqrt(flash_error / n / (n-1))/PI*180);
+    printf("    Total square-error         : %#9.6f rad\n", flash_pos_error);
+    printf("    Standard deviation of meaan: %#9.6f°\n", sqrt(flash_pos_error / n / (n-1))/PI*180);
 
 
     ///////////////////////////////
@@ -137,7 +149,7 @@ int main(int argc, char **argv) {
     data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
     flash_traj = btree_traj_search(data, flash_pos);
     double traj_error = data.rate_flash_traj(flash_pos, flash_traj);
-    vec3d_t flash_vel = data.get_flash_vel(flash_pos, flash_traj);
+    vec3d_t flash_vel = data.get_flash_vel(flash_pos_geo, flash_traj);
     data.normalize_t(flash_vel);
 
     printf("\nSummary on finding flash trajectory:\n");
@@ -149,9 +161,9 @@ int main(int argc, char **argv) {
     // Print answer
     printf("\nAnswer:\n");
     printf("Location:\n");
-    printf("    lat =  %8.5f°\n", flash_pos.x*180/PI);
-    printf("    lon =  %8.5f°\n", flash_pos.y*180/PI);
-    printf("    z   =  %8.5f(km)\n", flash_pos.z/1000);
+    printf("    lat =  %8.5f°\n", flash_pos_geo.x*180/PI);
+    printf("    lon =  %8.5f°\n", flash_pos_geo.y*180/PI);
+    printf("    z   =  %8.5f(km)\n", flash_pos_geo.z/1000);
     printf("Local velocity:\n");
     printf("    v_East  =  %8.5f(km/s)\n", flash_vel.x/1000);
     printf("    v_North =  %8.5f(km/s)\n", flash_vel.y/1000);
@@ -161,14 +173,18 @@ int main(int argc, char **argv) {
     printf("    ky = %8.5f\n", flash_traj.y);
     printf("    kz = %8.5f\n", flash_traj.z);
 
-
     // Print processed answer for each observer
-    printf("\n                  i     z0        h0        zb        hb         A         t   \n");
+    printf("\n                  i     z0°       h0°       zb°       hb°        A°        t(s)    w(°/s)\n");
     for (int i = 0; i < data.data_N; i++) {
-        printf("Processed Answer (%i): %#7.3f | %7.3f | %7.3f | %7.3f | %7.3f | %f\n", i+1,
+        printf("Processed Answer (%i): %#7.3f | %7.3f | %7.3f | %7.3f | %7.3f | %7.3f | ", i+1,
                 data.ex_data->z0[i]*180/PI, data.ex_data->h0[i]*180/PI,
                 data.ex_data->zb[i]*180/PI, data.ex_data->hb[i]*180/PI,
                 data.ex_data->a[i]*180/PI, data.ex_data->t[i]);
+        printf("%7.3f\n", arc_len(data.ex_data->h0[i],
+                    data.ex_data->z0[i],
+                    data.ex_data->hb[i],
+                    data.ex_data->zb[i])
+                /data.ex_data->t[i]/PI*180);
     }
 
     // Print ignored data
