@@ -27,7 +27,7 @@ struct data_t {
     int k_count_z0 = 0;
     int k_count_h0 = 0;
     int k_count_traj = 0;
-    int data_Ne = 0;
+    double data_Ne = 0.;
     double mean_lat;
     double mean_lon;
     alignas(16) vec3d_t *ob_pos;
@@ -69,7 +69,7 @@ struct data_t {
     /*
      * Normalize aobserver's 't'
      */
-    void normalize_t(const vec3d_t &flash_vel);
+    void normalize_t(double velocity);
 
 
     /*
@@ -83,7 +83,7 @@ struct data_t {
      * Return sigma (standard deviation)
      * of a given answer.
      */
-    //vec3d_t sigma_flash_pos(const vec3d_t &flash_geo);
+    vec3d_t sigma_flash_pos(const vec3d_t &flash_geo);
     //vec3d_t sigma_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params);
 
 

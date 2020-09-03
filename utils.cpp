@@ -51,7 +51,7 @@ __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
     return delta * delta; // return a1^2
 }
 
-// Calculate tje length of arc on a sphere
+// Calculate the length of arc on a sphere
 double arc_len(double h1, double z1, double h2, double z2) {
     double cos_l = sin(h1)*sin(h2) + cos(h1)*cos(h2)*cos(z1-z2);
     return acos(cos_l);
@@ -69,28 +69,23 @@ double azimuth(const vec3d_t &point, const vec3d_t normal, double ob_lat, double
     return cos_ze >= 0 ? zc : 2*PI - zc;
 }
 
-
 // Calculate the disent angle for the begining of the path.
 double desent_angle(double h, double z, double h0, double z0) {
     // Delta z
-    double dz = z0 - z;
+    double dz = angle_delta(z, z0);
 
-    // Compute l, its sin and cos
+    // Compute l
     double cos_l = sin(h0)*sin(h) + cos(h0)*cos(h)*cos(dz);
     double sin_l = sqrt(1 - cos_l*cos_l);
 
-    // Compute angle. its cos and sin
-    double sin_a = cos(h0) * sin(dz) / sin_l;
-    double cos_a = (sin(h0) - sin(h)*cos_l) / (cos(h) * sin_l);
-    double a = asin(sin_a);
+    // Compute angle.
+    double a = acos((sin(h0) - sin(h)*cos_l) / (cos(h)*sin_l));
 
+    // Undefined angle
     if (isnan(a))
         return 0;
 
-    // Decide
-    if (cos_a < 0)
-        return PI - a;
-    return sin_a >= 0 ? a : a + 2*PI;
+    return dz < 0 ? 2*PI - a : a;
 }
 
 // Calculate normal

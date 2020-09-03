@@ -86,6 +86,9 @@ inline vec3d_t gen_vec(double z, double theta) {
     return {cos(theta) * r, sin(theta) * r, z};
 }
 vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
+    //return {7.5/27.4, 23.5/27.4, 11.9/27.4};
+
+
     std::default_random_engine e;
     std::normal_distribution<double> rand(0.,1.);
     double best_error = INFINITY;
@@ -124,14 +127,25 @@ int main(int argc, char **argv) {
 
     // (lat, lon) coordinates
     vec2d_t flash_geo = btree_flash_2d_search(data);
-    data.eliminate_inconsistent_z0(flash_geo);
-    flash_geo = btree_flash_2d_search(data);
+    for (int i = 0; i < 55; i++) {
+        data.eliminate_inconsistent_z0(flash_geo);
+        flash_geo = btree_flash_2d_search(data);
+    }
 
     // height
     vec3d_t flash_pos_geo = btree_flash_3d_search(data, flash_geo);
-    data.eliminate_inconsistent_h0(flash_pos_geo);
-    flash_pos_geo = btree_flash_3d_search(data, flash_geo);
+    for (int i = 0; i < 55; i++) {
+        data.eliminate_inconsistent_h0(flash_pos_geo);
+        flash_pos_geo = btree_flash_3d_search(data, flash_geo);
+    }
+
+    //vec2d_t flash_geo = {33.1/180*PI, 34.3/180*PI};
+    //vec3d_t flash_pos_geo = {33.1/180*PI, 34.3/180*PI, 27400};
+    //data.eliminate_inconsistent_z0(flash_geo);
+    //data.eliminate_inconsistent_h0(flash_pos_geo);
+
     vec3d_t flash_pos = geo_to_xyz(flash_pos_geo);
+    vec3d_t flash_sigma = data.sigma_flash_pos(flash_pos_geo);
 
     double flash_pos_error = data.rate_z0(flash_geo) + data.rate_h0(flash_pos_geo);
     double n = data.data_Ne*2 - data.k_count_z0 - data.k_count_h0;
@@ -146,32 +160,39 @@ int main(int argc, char **argv) {
     ///////////////////////////////
 
     vec3d_t flash_traj = btree_traj_search(data, flash_pos);
-    data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
-    flash_traj = btree_traj_search(data, flash_pos);
-    double traj_error = data.rate_flash_traj(flash_pos, flash_traj);
+    for (int i = 0; i < 5; i++) {
+        data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
+        flash_traj = btree_traj_search(data, flash_pos);
+    }
     vec3d_t flash_vel = data.get_flash_vel(flash_pos_geo, flash_traj);
-    data.normalize_t(flash_vel);
+
+
+    double traj_error = data.rate_flash_traj(flash_pos, flash_traj);
+    n = data.data_Ne * 3 - data.k_count_traj;
+
+    double velocity = flash_vel.length();
+    data.normalize_t(velocity);
 
     printf("\nSummary on finding flash trajectory:\n");
     printf("    Total square-error:          %#9.6f rad\n", traj_error);
-    n = data.data_Ne * 3 - data.k_count_traj;
     printf("    Standard deviation of meaan: %#9.6f°\n", sqrt(traj_error / n / (n-1))/PI*180);
 
 
     // Print answer
     printf("\nAnswer:\n");
-    printf("Location:\n");
-    printf("    lat =  %8.5f°\n", flash_pos_geo.x*180/PI);
-    printf("    lon =  %8.5f°\n", flash_pos_geo.y*180/PI);
-    printf("    z   =  %8.5f(km)\n", flash_pos_geo.z/1000);
-    printf("Local velocity:\n");
-    printf("    v_East  =  %8.5f(km/s)\n", flash_vel.x/1000);
-    printf("    v_North =  %8.5f(km/s)\n", flash_vel.y/1000);
-    printf("    v_z     =  %8.5f(km/s)\n", flash_vel.z/1000);
-    printf("Global inverse trajectory coefficients:\n");
-    printf("    kx = %8.5f\n", flash_traj.x);
-    printf("    ky = %8.5f\n", flash_traj.y);
-    printf("    kz = %8.5f\n", flash_traj.z);
+    printf("  Location:\n");
+    printf("    lat =  %8.5f ± %6.4f(°)\n", flash_pos_geo.x*180/PI, flash_sigma.x*180/PI);
+    printf("    lon =  %8.5f ± %6.4f(°)\n", flash_pos_geo.y*180/PI, flash_sigma.y*180/PI);
+    printf("    z   =  %8.5f ± %6.4f(km)\n", flash_pos_geo.z/1000, flash_sigma.z/1000);
+    printf("  Velocity: %8.5f(km/s)\n", velocity);
+    printf("    Local:\n");
+    printf("      v_East  =  %8.5f(km/s)\n", flash_vel.x/1000);
+    printf("      v_North =  %8.5f(km/s)\n", flash_vel.y/1000);
+    printf("      v_z     =  %8.5f(km/s)\n", flash_vel.z/1000);
+    printf("    Global:\n");
+    printf("      v_x = %8.5f(km/s)\n", -flash_traj.x * velocity);
+    printf("      v_y = %8.5f(km/s)\n", -flash_traj.y * velocity);
+    printf("      v_z = %8.5f(km/s)\n", -flash_traj.z * velocity);
 
     // Print processed answer for each observer
     printf("\n                  i     z0°       h0°       zb°       hb°        A°        t(s)    w(°/s)\n");
