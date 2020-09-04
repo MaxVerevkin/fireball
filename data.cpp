@@ -150,7 +150,6 @@ void data_t::eliminate_inconsistent_h0(const vec3d_t &flash_geo) {
             k_count_h0 += !k_h0[i] * ob_e[i];
         }
     }
-    printf("%i\n", k_count_h0);
 }
 void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash_pos, const vec3d_t params) {
     reset_k_traj();
@@ -315,7 +314,7 @@ vec3d_t data_t::sigma_flash_pos(const vec3d_t &flash) {
         if (k_z0[i]) {
             double z0 = ob_data->z0[i];
             double d_lon = flash.y - ob_lon[i];
-            double cos_alpha = sin(z0) * sin(d_lon) * sin(flash.x) - cos(z0) * cos(d_lon);
+            double cos_alpha = sin(z0) * sin(d_lon) * sin(ob_lat[i]) - cos(z0) * cos(d_lon);
             double sin_alpha = sqrt(1 - cos_alpha*cos_alpha);
             double sin_lat = (cos(z0) + cos(d_lon)*cos_alpha) / (sin(d_lon)*sin_alpha);
             double lat = asin(sin_lat);
@@ -332,6 +331,8 @@ vec3d_t data_t::sigma_flash_pos(const vec3d_t &flash) {
     sigma_lat /= lat_n * (lat_n-1);
     sigma_lon /= lon_n * (lon_n-1);
     sigma_z /= z_n * (z_n-1);
+
+    //printf("-- %f of %f\n", lat_n, data_Ne);
 
     return vec3d_t {sqrt(sigma_lat), sqrt(sigma_lon), sqrt(sigma_z)};
 }
