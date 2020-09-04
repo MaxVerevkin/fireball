@@ -85,11 +85,9 @@ double desent_angle(double h1, double z1, double h2, double z2) {
     if (isnan(a))
         return 0;
 
-    if (!dz) {
-        if (h1 < h2)
-            return 0;
-        return PI * .5;
-    }
+    // Equal z
+    if (z1 == z2)
+        return (h1 > h2) * PI;
 
     return dz < 0 ? 2*PI - a : a;
 }
