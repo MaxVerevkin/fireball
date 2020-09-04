@@ -70,20 +70,26 @@ double azimuth(const vec3d_t &point, const vec3d_t normal, double ob_lat, double
 }
 
 // Calculate the disent angle for the begining of the path.
-double desent_angle(double h, double z, double h0, double z0) {
+double desent_angle(double h1, double z1, double h2, double z2) {
     // Delta z
-    double dz = angle_delta(z, z0);
+    double dz = angle_delta(z1, z2);
 
     // Compute l
-    double cos_l = sin(h0)*sin(h) + cos(h0)*cos(h)*cos(dz);
+    double cos_l = sin(h1)*sin(h2) + cos(h1)*cos(h2)*cos(dz);
     double sin_l = sqrt(1 - cos_l*cos_l);
 
     // Compute angle.
-    double a = acos((sin(h0) - sin(h)*cos_l) / (cos(h)*sin_l));
+    double a = acos((sin(h2) - sin(h1)*cos_l) / (cos(h1)*sin_l));
 
     // Undefined angle
     if (isnan(a))
         return 0;
+
+    if (!dz) {
+        if (h1 < h2)
+            return 0;
+        return PI * .5;
+    }
 
     return dz < 0 ? 2*PI - a : a;
 }
