@@ -310,18 +310,23 @@ vec3d_t data_t::sigma_flash_pos(const vec3d_t &flash) {
         double lon = flash.y;
         double z = flash.z;
 
+        double z0 = ob_data->z0[i];
+        double d_lon = flash.y - ob_lon[i];
+
         // Latitude
-        if (k_z0[i]) {
-            double z0 = ob_data->z0[i];
-            double d_lon = flash.y - ob_lon[i];
+        if (k_z0[i] && ((d_lon > 0 && z0  < PI) || (d_lon < 0 && z0 > PI))) {
+            int sign = (z0>PI)*(-2)+1;
             double cos_alpha = sin(z0) * sin(d_lon) * sin(ob_lat[i]) - cos(z0) * cos(d_lon);
             double sin_alpha = sqrt(1 - cos_alpha*cos_alpha);
             double sin_lat = (cos(z0) + cos(d_lon)*cos_alpha) / (sin(d_lon)*sin_alpha);
-            double lat = asin(sin_lat);
+            double lat = sign * asin(sin_lat);
             if (isnan(lat))
                 lat = sin_lat * PI * .5;
             lat_n += ob_e[i];
             sigma_lat += pow(flash.x - lat, 2) *  ob_e[i];
+
+            //printf("debug1: z0=%f flash.y=%f  ob_lon=%f\n", z0/PI*180, flash.y/PI*180, ob_lon[i]/PI*180);
+            //printf("debug2: sign=%i i=%i flash.x=%f lat_c=%f\n", (z0>PI)*(-2)+1, i, flash.x/PI*180, lat/PI*180);
         }
 
         sigma_lon += pow(flash.y - lon, 2) *  ob_e[i];
