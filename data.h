@@ -15,10 +15,9 @@ struct data_t {
     int data_N;
 
     // Observer's data
-    alignas(16) double *ob_lat;    // Latitude
-    alignas(16) double *ob_lon;    // Longitude
-    alignas(16) double *ob_height; // Height
-    alignas(16) double *ob_e;      // Experience
+    alignas(16) vec3d_t *ob_pos;     // Position in global coorinates (x,y,z)
+    alignas(16) vec3d_t *ob_pos_geo; // Position in geographical coordinates (lat,lon,z)
+    alignas(16) double *ob_e;        // Experience
 
     data_set_t *ob_data; // Data given by observer
     data_set_t *ex_data; // Data produced by answer
@@ -30,7 +29,6 @@ struct data_t {
     double data_Ne = 0.;
     double mean_lat;
     double mean_lon;
-    alignas(16) vec3d_t *ob_pos;
     alignas(16) vec3d_t *normal;
     alignas(16) double *r;
     // Used to ignore inconsistent data
@@ -54,17 +52,21 @@ struct data_t {
     void reset_k_traj();
 
     /*
-     * Sets K=0 to all data which square-error is
+     * Sets K=0 for all data which square-error is
      * max_error_k times greater than mean square-error
      */
     void eliminate_inconsistent_z0(const vec2d_t &flash_geo);
-    void eliminate_inconsistent_h0(const vec3d_t &flash_geo);
     void eliminate_inconsistent_traj_data(const vec3d_t &flash_pos, const vec3d_t params);
 
     /*
      * Translate flash trajectory vector to local velocity.
      */
     vec3d_t get_flash_vel(const vec3d_t &flash_geo, const vec3d_t &traj);
+    
+    /*
+     * Calculate the height of a flash given it's location.
+     */
+    double calc_flash_height(const vec2d_t &flash);
 
     /*
      * Normalize aobserver's 't'
@@ -76,7 +78,6 @@ struct data_t {
      * Return square-error of a given answer.
      */
     double rate_z0(const vec2d_t &flash_geo);
-    double rate_h0(const vec3d_t &flash_geo);
     double rate_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params);
 
     /*
@@ -95,7 +96,7 @@ struct data_t {
     void process_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params);
 
     /*
-     * Proceese answer for the trajectory for one observer given 't'.
+     * Procees answer for the trajectory for one observer given 't'.
      */
     void process_flash_traj_i(const vec3d_t &flash_pos, const vec3d_t params, double t, int i);
 

@@ -4,6 +4,7 @@
 
 #include <random>
 
+std::default_random_engine e(time(0));
 
 /*
  * Run binary-tree-like search.
@@ -20,66 +21,63 @@ vec2d_t btree_flash_2d_search(data_t &data) {
     //
     // TODO get latitude into account.
 
-    vec2d_t min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
-    vec2d_t max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
+    //vec2d_t min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
+    //vec2d_t max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
+    vec2d_t min_val = { data.mean_lat - PI/36, data.mean_lon - PI/36};
+    vec2d_t max_val = { data.mean_lat + PI/36, data.mean_lon + PI/36};
     vec2d_t pos = (min_val + max_val) * .5;
 
-    for (int i = 0; i < FLASH_2D_SEARCH_N; i++) {
 
-        // Lat
-        for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
-            vec2d_t correction = {(max_val.x - min_val.x) * .01, 0};
-            double e1 = data.rate_z0(pos - correction);
-            double e2 = data.rate_z0(pos + correction);
+    std::uniform_real_distribution<double> rand(min_val.x, max_val.x);
+    double best_error = INFINITY;
 
-            if (e1 < e2)
-                max_val.x = pos.x;
-            else
-                min_val.x = pos.x;
+    for (int i = 0; i < 100000; i++) {
+        vec2d_t v = {rand(e), rand(e)};
 
-            pos.x = (min_val.x + max_val.x) * .5;
+        double error = data.rate_z0(v);
+        if (error < best_error) {
+            best_error = error;
+            pos = v;
         }
-        // Lon
-        for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
-            vec2d_t correction = {0, (max_val.y - min_val.y) * .01};
-            double e1 = data.rate_z0(pos - correction);
-            double e2 = data.rate_z0(pos + correction);
+    }
 
-            if (e1 < e2)
-                max_val.y = pos.y;
-            else
-                min_val.y = pos.y;
+    //for (int i = 0; i < FLASH_2D_SEARCH_N; i++) {
+
+        //// Lat
+        //for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
+            //vec2d_t correction = {(max_val.x - min_val.x) * .01, 0};
+            //double e1 = data.rate_z0(pos - correction);
+            //double e2 = data.rate_z0(pos + correction);
+
+            //if (e1 < e2)
+                //max_val.x = pos.x;
+            //else
+                //min_val.x = pos.x;
+
+            //pos.x = (min_val.x + max_val.x) * .5;
+        //}
+        //// Lon
+        //for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
+            //vec2d_t correction = {0, (max_val.y - min_val.y) * .01};
+            //double e1 = data.rate_z0(pos - correction);
+            //double e2 = data.rate_z0(pos + correction);
+
+            //if (e1 < e2)
+                //max_val.y = pos.y;
+            //else
+                //min_val.y = pos.y;
             
-            pos.y = (min_val.y + max_val.y) * .5;
-        }
+            //pos.y = (min_val.y + max_val.y) * .5;
+        //}
         
-        // Reset bounds
-        min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
-        max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
-    }
+        //// Reset bounds
+        //min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
+        //max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
+    //}
 
     return pos;
 }
-vec3d_t btree_flash_3d_search(data_t &data, const vec2d_t flash_2d) {
-    double min_val = z0_min;
-    double max_val = z0_max;
-    vec3d_t pos = {flash_2d.x, flash_2d.y, (min_val + max_val) * .5};
 
-    for (int i = 0; i < FLASH_3D_SEARCH_DEPTH; i++) {
-        vec3d_t correction = {0, 0, (max_val - min_val) * .01};
-        double e1 = data.rate_h0(pos - correction);
-        double e2 = data.rate_h0(pos + correction);
-
-        if (e1 < e2)
-            max_val = pos.z;
-        else
-            min_val = pos.z;
-
-        pos.z = (min_val + max_val) * .5;
-    }
-
-    return pos;
-}
 
 inline vec3d_t gen_vec(double z, double theta) {
     double r = sqrt(1. - z*z);
@@ -89,12 +87,11 @@ vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
     //return {7.5/27.4, 23.5/27.4, 11.9/27.4};
 
 
-    std::default_random_engine e;
     std::normal_distribution<double> rand(0.,1.);
     double best_error = INFINITY;
     vec3d_t best_ans;
 
-    for (int i = 0; i < 700; i++) {
+    for (int i = 0; i < 1000; i++) {
         vec3d_t traj = {rand(e), rand(e), rand(e)};
         traj = traj.normalized();
 
@@ -127,17 +124,19 @@ int main(int argc, char **argv) {
 
     // (lat, lon) coordinates
     vec2d_t flash_geo = btree_flash_2d_search(data);
-    for (int i = 0; i < 55; i++) {
+    for (int i = 0; i < 2; i++) {
         data.eliminate_inconsistent_z0(flash_geo);
         flash_geo = btree_flash_2d_search(data);
     }
 
+    double flash_geo_error = data.rate_z0(flash_geo);
+    double n = data.data_Ne - data.k_count_z0;
+    printf("\nSummary on finding flash position:\n");
+    printf("    Total square-error         : %#9.6f rad\n", flash_geo_error);
+    printf("    Standard deviation of meaan: %#9.6f°\n", sqrt(flash_geo_error / n / (n-1))/PI*180);
+
     // height
-    vec3d_t flash_pos_geo = btree_flash_3d_search(data, flash_geo);
-    for (int i = 0; i < 55; i++) {
-        data.eliminate_inconsistent_h0(flash_pos_geo);
-        flash_pos_geo = btree_flash_3d_search(data, flash_geo);
-    }
+    vec3d_t flash_pos_geo = {flash_geo.x, flash_geo.y, data.calc_flash_height(flash_geo)};
 
     //vec2d_t flash_geo = {33.1/180*PI, 34.3/180*PI};
     //vec3d_t flash_pos_geo = {33.1/180*PI, 34.3/180*PI, 27400};
@@ -146,13 +145,6 @@ int main(int argc, char **argv) {
 
     vec3d_t flash_pos = geo_to_xyz(flash_pos_geo);
     vec3d_t flash_sigma = data.sigma_flash_pos(flash_pos_geo);
-
-    double flash_pos_error = data.rate_z0(flash_geo) + data.rate_h0(flash_pos_geo);
-    double n = data.data_Ne*2 - data.k_count_z0 - data.k_count_h0;
-
-    printf("\nSummary on finding flash position:\n");
-    printf("    Total square-error         : %#9.6f rad\n", flash_pos_error);
-    printf("    Standard deviation of meaan: %#9.6f°\n", sqrt(flash_pos_error / n / (n-1))/PI*180);
 
 
     ///////////////////////////////
@@ -181,18 +173,18 @@ int main(int argc, char **argv) {
     // Print answer
     printf("\nAnswer:\n");
     printf("  Location:\n");
-    printf("    lat =  %8.5f ± %6.4f(°)\n", flash_pos_geo.x*180/PI, flash_sigma.x*180/PI);
-    printf("    lon =  %8.5f ± %6.4f(°)\n", flash_pos_geo.y*180/PI, flash_sigma.y*180/PI);
-    printf("    z   =  %8.5f ± %6.4f(km)\n", flash_pos_geo.z/1000, flash_sigma.z/1000);
-    printf("  Velocity: %8.5f(km/s)\n", velocity);
+    printf("    lat =  %8.4f ± %6.4f(°)\n", flash_pos_geo.x*180/PI, flash_sigma.x*180/PI);
+    printf("    lon =  %8.4f ± %6.4f(°)\n", flash_pos_geo.y*180/PI, flash_sigma.y*180/PI);
+    printf("    z   =  %8.4f ± %6.4f(km)\n", flash_pos_geo.z/1000, flash_sigma.z/1000);
+    printf("  Velocity: %8.3f(km/s)\n", velocity/1000);
     printf("    Local:\n");
-    printf("      v_East  =  %8.5f(km/s)\n", flash_vel.x/1000);
-    printf("      v_North =  %8.5f(km/s)\n", flash_vel.y/1000);
-    printf("      v_z     =  %8.5f(km/s)\n", flash_vel.z/1000);
+    printf("      v_East  =  %8.3f(km/s)\n", flash_vel.x/1000);
+    printf("      v_North =  %8.3f(km/s)\n", flash_vel.y/1000);
+    printf("      v_z     =  %8.3f(km/s)\n", flash_vel.z/1000);
     printf("    Global:\n");
-    printf("      v_x = %8.5f(km/s)\n", -flash_traj.x * velocity);
-    printf("      v_y = %8.5f(km/s)\n", -flash_traj.y * velocity);
-    printf("      v_z = %8.5f(km/s)\n", -flash_traj.z * velocity);
+    printf("      v_x = %8.3f(km/s)\n", -flash_traj.x * velocity / 1000);
+    printf("      v_y = %8.3f(km/s)\n", -flash_traj.y * velocity / 1000);
+    printf("      v_z = %8.3f(km/s)\n", -flash_traj.z * velocity / 1000);
 
     // Print processed answer for each observer
     printf("\n                  i     z0°       h0°       zb°       hb°        A°        t(s)    w(°/s)\n");

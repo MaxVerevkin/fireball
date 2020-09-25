@@ -7,13 +7,13 @@
 /////////////////
 
 vec2d_t vec2d_t::operator*(double a) const {
-    return vec2d_t {x*a, y*a};
+    return {x*a, y*a};
 }
 vec2d_t vec2d_t::operator+(const vec2d_t &vec) const {
-    return vec2d_t {x+vec.x, y+vec.y};
+    return {x+vec.x, y+vec.y};
 }
 vec2d_t vec2d_t::operator-(const vec2d_t &vec) const {
-    return vec2d_t {x-vec.x, y-vec.y};
+    return {x-vec.x, y-vec.y};
 }
 
 
@@ -27,17 +27,17 @@ double vec3d_t::operator*(const vec3d_t &vec) const {
 }
 
 vec3d_t vec3d_t::operator*(double a) const {
-    return vec3d_t {x*a, y*a, z*a};
+    return {x*a, y*a, z*a};
 }
 vec3d_t vec3d_t::operator/(double a) const {
-    return vec3d_t {x/a, y/a, z/a};
+    return {x/a, y/a, z/a};
 }
 
 vec3d_t vec3d_t::operator-(const vec3d_t &vec) const {
-    return vec3d_t {x-vec.x, y-vec.y, z-vec.z};
+    return {x-vec.x, y-vec.y, z-vec.z};
 }
 vec3d_t vec3d_t::operator+(const vec3d_t &vec) const {
-    return vec3d_t {x+vec.x, y+vec.y, z+vec.z};
+    return {x+vec.x, y+vec.y, z+vec.z};
 }
 
 double vec3d_t::length() const {
@@ -46,6 +46,10 @@ double vec3d_t::length() const {
 
 vec3d_t vec3d_t::normalized() const {
     return *this/length();
+}
+
+vec2d_t vec3d_t::to2d() const {
+    return {x, y};
 }
 
 

@@ -3,17 +3,14 @@
 
 
 // Translate geographical location to XYZ.
-vec3d_t geo_to_xyz(double lat, double lon, double z) {
+vec3d_t geo_to_xyz(const vec3d_t &geo) {
     vec3d_t pos;
-    double r = EARTH_R + z;
-    double xy = r * cos(lat);
-    pos.x = xy * cos(lon);
-    pos.y = xy * sin(lon);
-    pos.z = r * sin(lat);
+    double r = EARTH_R + geo.z;
+    double xy = r * cos(geo.x);
+    pos.x = xy * cos(geo.y);
+    pos.y = xy * sin(geo.y);
+    pos.z = r * sin(geo.y);
     return pos;
-}
-vec3d_t geo_to_xyz(const vec3d_t &pos) {
-    return geo_to_xyz(pos.x, pos.y, pos.z);
 }
 
 
@@ -24,14 +21,13 @@ inline __m128d abs_pd(__m128d x) {
 
 
 // Calculate delta of two angles.
-double angle_delta(double a1, double a2) {
-    double delta = a2 - a1;
-    double abs_delta = abs(delta);
-    if (abs_delta > PI)
-        return 2*PI - abs_delta;
-    return delta;
-}
 __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
+    double t1 = angle_delta(addr1[0], addr2[0]);
+    double t2 = angle_delta(addr1[1], addr2[1]);
+    t1 *= t1;
+    t2 *= t2;
+    return _mm_set_pd(t1, t2);
+
     static const __m128d __pi = _mm_set1_pd(PI);
     static const __m128d __2pi = _mm_set1_pd(2*PI);
 
@@ -51,6 +47,12 @@ __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
     return delta * delta; // return a1^2
 }
 
+double calc_height(vec3d_t p, vec2d_t p0, double h) {
+    double cos_l = sin(p.x)*sin(p0.x) + cos(p.x)*cos(p0.x)*cos(p.y-p0.y);
+    double sin_l = sqrt(1 - cos_l*cos_l);
+    return (1/(cos_l - tan(h) * sin_l) - 1) * (EARTH_R+p.z) + p.z;
+}
+
 // Calculate the length of arc on a sphere
 double arc_len(double h1, double z1, double h2, double z2) {
     double cos_l = sin(h1)*sin(h2) + cos(h1)*cos(h2)*cos(z1-z2);
@@ -58,11 +60,12 @@ double arc_len(double h1, double z1, double h2, double z2) {
 }
 
 // Calculate the azimuth given XYZ coordinates, North and East vectors.
-double azimuth(const vec3d_t &point, const vec3d_t normal, double ob_lat, double ob_lon, double r) {
+//double azimuth(const vec3d_t &point, const vec3d_t normal, double ob_lat, double ob_lon, double r) {
+double azimuth(const vec3d_t &point, const vec3d_t &normal, const vec2d_t &observer, double r) {
     double inv_point_len = 1. / point.length();
 
-    vec3d_t north = north_vec(ob_lat, ob_lon);
-    vec3d_t east = east_vec(ob_lat, ob_lon);
+    vec3d_t north = north_vec(observer);
+    vec3d_t east = east_vec(observer.y);
 
     double zc = acos(point * north * inv_point_len / north.length());
     double cos_ze = point * east * inv_point_len / east.length();
@@ -85,11 +88,8 @@ double desent_angle(double h1, double z1, double h2, double z2) {
     if (isnan(a))
         return 0;
 
-    // Equal z
-    if (z1 == z2)
-        return (h1 > h2) * PI;
-
-    return dz < 0 ? 2*PI - a : a;
+    int left = dz < 0;
+    return 2*PI*left - (left*2 - 1) * a;
 }
 
 // Calculate normal
@@ -102,19 +102,23 @@ vec3d_t normal_vec(double lat, double lon) {
 }
 
 // Genetare vector pointing to Notrh
-vec3d_t north_vec(double lat, double lon) {
-    return {-sin(lat)*cos(lon), -sin(lat)*sin(lon), cos(lat)};
+vec3d_t north_vec(const vec2d_t &ob) {
+    vec3d_t north;
+    north.x = -sin(ob.x)*cos(ob.y);
+    north.y = -sin(ob.x)*sin(ob.y);
+    north.z = cos(ob.x);
+    return north;
 }
 
 // Genetare vector pointing to East
-vec3d_t east_vec(double lat, double lon) {
+vec3d_t east_vec(double lon) {
     return {-sin(lon), cos(lon), 0};
 }
 
 // Translate global vector to local
 vec3d_t global_to_local(vec3d_t vec, double lat, double lon) {
-    vec3d_t north = north_vec(lat, lon);
-    vec3d_t east = east_vec(lat, lon);
+    vec3d_t north = north_vec({lat, lon});
+    vec3d_t east = east_vec(lon);
     vec3d_t normal = normal_vec(lat, lon);
 
     vec3d_t ex = {east.x, north.x, normal.x};

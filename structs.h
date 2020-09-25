@@ -30,6 +30,8 @@ struct vec3d_t {
 
     double length() const;
     vec3d_t normalized() const;
+
+    vec2d_t to2d() const;
 };
 
 
