@@ -91,7 +91,7 @@ vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
     double best_error = INFINITY;
     vec3d_t best_ans;
 
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 2000; i++) {
         vec3d_t traj = {rand(e), rand(e), rand(e)};
         traj = traj.normalized();
 
@@ -193,10 +193,10 @@ int main(int argc, char **argv) {
                 data.ex_data->z0[i]*180/PI, data.ex_data->h0[i]*180/PI,
                 data.ex_data->zb[i]*180/PI, data.ex_data->hb[i]*180/PI,
                 data.ex_data->a[i]*180/PI, data.ex_data->t[i]);
-        printf("%7.3f\n", arc_len(data.ex_data->h0[i],
-                    data.ex_data->z0[i],
-                    data.ex_data->hb[i],
-                    data.ex_data->zb[i])
+        printf("%7.3f\n", arc_len({data.ex_data->h0[i],
+                    data.ex_data->z0[i]},
+                    {data.ex_data->hb[i],
+                    data.ex_data->zb[i]})
                 /data.ex_data->t[i]/PI*180);
     }
 

@@ -36,6 +36,32 @@ double *calc_errors(data_t *data, double *k, error_func func, double *total, dou
     return errors;
 }
 
+int eliminate(data_t *data, double ne, double total, double *errors, double *k, double max_e, double acc) {
+    int k_count = 0;
+    bool clear;
+    do {
+        clear = true;
+        for (int i = 0; i < data->data_N; i++) {
+            // Skip eliminated
+            if (!k[i])
+                continue;
+
+            // Mean w/o this observer
+            double mean = (total - errors[i]) / (ne - data->ob_e[i]);
+
+            // Eliminate
+            if (errors[i] > mean * max_e && errors[i] > acc*data->ob_e[i]) {
+                clear = false; // Should repeat
+                k[i] = 0;
+                k_count += data->ob_e[i];
+                total -= errors[i];
+                ne -= data->ob_e[i];
+            }
+        }
+    } while (!clear);
+    return k_count;
+}
+
 data_t::data_t(const char *file) {
 
     // Open file
@@ -155,7 +181,7 @@ double data_t::calc_flash_height(const vec2d_t &flash_geo) {
     double count = 0;
     for (int i = 0; i < data_N; i++) {
         if (k_h0[i]) {
-            heights[i] = calc_height(ob_pos_geo[i], flash_geo, ob_data->h0[i]) * ob_e[i];
+            heights[i] = altitude_to_height(ob_pos_geo[i], flash_geo, ob_data->h0[i]) * ob_e[i];
             total_height += heights[i];
             count += ob_e[i];
         }
@@ -171,36 +197,22 @@ double data_t::calc_flash_height(const vec2d_t &flash_geo) {
         }
     }
 
-    // Eliminate until clear
-    bool clear;
-    do {
-        clear = true;
-        for (int i = 0; i < data_N; i++) {
-            // Skip eliminated
-            if (!k_h0[i])
-                continue;
-
-            double e = ob_e[i];
-
-
-            // Mean w/o this observer
-            double mean = (total_error - errors[i]) / (count - e);
-
-            // Eliminate
-            if (errors[i] > mean * MAX_ERROR_H0) {
-                clear = false; // Should repeat
-                k_h0[i] = 0;
-                k_count_h0 += e;
-                total_height -= heights[i];
-                total_error -= errors[i];
-                count -= e;
-            }
-        }
-    } while (!clear);
+    //int eliminate(data_t *data, double ne, double total, double *errors, double *k, double max_e, double acc);
+    int x = eliminate(this, count, total_error, errors, k_h0, MAX_ERROR_H0, 0);
     delete errors;
+    k_count_h0 += x;
+    count -= x;
     
-    process_h0({flash_geo.x, flash_geo.y, total_height / count});
-    return total_height / count;
+    double height = 0;
+    for (int i = 0; i < data_N; i++)
+        if (k_h0[i])
+            height += heights[i] * ob_e[i];
+    height /= count;
+    delete heights;
+
+    
+    process_h0({flash_geo.x, flash_geo.y, height});
+    return height;
 }
 
 
@@ -217,30 +229,8 @@ void data_t::eliminate_inconsistent_z0(const vec2d_t &flash_geo) {
     double total_error = 0, n = 0;
     double *errors = calc_errors(this, k_z0, z0_error, &total_error, &n);
 
-    // Eliminate until clear
-    bool clear;
-    do {
-        clear = true;
-        for (int i = 0; i < data_N; i++) {
-            // Skip eliminated
-            if (!k_z0[i])
-                continue;
-
-            double e = ob_e[i];
-
-            // Mean w/o this observer
-            double mean = (total_error - errors[i]) / (n - e);
-
-            // Eliminate
-            if (errors[i] > mean * MAX_ERROR_Z * e && errors[i] > ACCURACY_Z * e) {
-                clear = false; // Should repeat
-                k_z0[i] = 0;
-                k_count_z0 += ob_e[i];
-                total_error -= errors[i];
-                n -= e;
-            }
-        }
-    } while (!clear);
+    //int eliminate(data_t *data, double ne, double total, double *errors, double *k, double max_e, double acc);
+    k_count_z0 += eliminate(this, n, total_error, errors, k_z0, MAX_ERROR_Z, ACCURACY_Z);
     delete errors;
 }
 void data_t::eliminate_inconsistent_traj_data(const vec3d_t &flash_pos, const vec3d_t params) {
@@ -398,10 +388,6 @@ vec3d_t data_t::sigma_flash_pos(const vec3d_t &flash) {
                 lat = sin_lat * PI * .5;
             lat_n += ob_e[i];
             sigma_lat += pow(flash.x - lat, 2) *  ob_e[i];
-            //sigma_lat += lat *  ob_e[i];
-
-            //printf("debug1: z0=%f flash.y=%f  ob_lon=%f\n", z0/PI*180, flash.y/PI*180, ob_lon[i]/PI*180);
-            //printf("debug2: sign=%i i=%i flash.x=%f lat_c=%f\n", (z0>PI)*(-2)+1, i, flash.x/PI*180, lat/PI*180);
         }
 
         // Longitude
@@ -412,14 +398,11 @@ vec3d_t data_t::sigma_flash_pos(const vec3d_t &flash) {
             double lon = 2*atan(1. / (tan((ob_pos_geo[i].x - flash.x)/2) * tan((z0 - gamma)/2))) + ob_pos_geo[i].y;
             lon_n += ob_e[i];
             sigma_lon += pow(flash.y - lon, 2) *  ob_e[i];
-
-            //printf("debug1: z0=%f flash.x=%f  ob_lat=%f\n", z0/PI*180, flash.x/PI*180, ob_lat[i]/PI*180);
-            //printf("debug2: i=%i gamma=%f lon_c=%f\n", i, gamma/PI*180, lon/PI*180);
         }
 
         // Height
         if (k_h0[i]) {
-            double z = calc_height(ob_pos_geo[i], flash.to2d(), ob_data->h0[i]);
+            double z = altitude_to_height(ob_pos_geo[i], flash.to2d(), ob_data->h0[i]);
             sigma_z += pow(flash.z - z, 2) *  ob_e[i];
             z_n += ob_e[i];
         }
@@ -427,36 +410,12 @@ vec3d_t data_t::sigma_flash_pos(const vec3d_t &flash) {
 
 
     sigma_lat /= lat_n * (lat_n-1);
-    //sigma_lat /= lat_n;
     sigma_lon /= lon_n * (lon_n-1);
     sigma_z /= z_n * (z_n-1);
 
 
     return vec3d_t {sqrt(sigma_lat), sqrt(sigma_lon), sqrt(sigma_z)};
-    //return vec3d_t {sigma_lat, sqrt(sigma_lon), sqrt(sigma_z)};
 }
-//vec3d_t data_t::sigma_flash_traj(const vec3d_t &flash, const vec3d_t &params) {
-    //process_flash_traj(flash, params);
-
-    //double sigma_x = 0;
-    //double sigma_y = 0;
-    //double sigma_z = 0;
-    //for (int i = 0; i < data_N; i++) {
-        //double x_rel = flash.x - ob_pos[i].x + params.x * ex_data->t[i];
-        //double y_rel = flash.y - ob_pos[i].y + params.y * ex_data->t[i];
-        //double z_rel = flash.z - ob_pos[i].z + params.z * ex_data->t[i];
-        //double tan_zb = tan(ob_zb[i]);
-        //sigma_x += pow((y_rel * tan_zb - x_rel) / ex_data->t[i], 2) * k_zb[i] * ob_e[i];
-        //sigma_y += pow((x_rel / tan_zb - y_rel) / ex_data->t[i], 2) * k_zb[i] * ob_e[i];
-        //sigma_z += pow((sqrt(x_rel*x_rel + y_rel*y_rel) * tan(ob_hb[i]) - z_rel) / ex_data->t[i], 2) * k_hb[i] * ob_e[i];
-    //}
-
-    //sigma_x /= data_N * (data_N - 1);
-    //sigma_y /= data_N * (data_N - 1);
-    //sigma_z /= data_N * (data_N - 1);
-
-    //return vec3d_t {sqrt(sigma_x), sqrt(sigma_y), sqrt(sigma_z)};
-//}
 
 
 /*
@@ -466,32 +425,15 @@ void data_t::process_z0(const vec2d_t &flash_geo) {
     #ifdef OP_PARALEL
     #pragma omp parallel for
     #endif
-    for (int i = 0; i < data_N; i++) {
+    for (int i = 0; i < data_N; i++)
         ex_data->z0[i] = desent_angle(ob_pos_geo[i].to2d(), flash_geo);
-    }
 }
 void data_t::process_h0(const vec3d_t &flash_geo) {
-    // Translate from geo position to 3D point
-    //vec3d_t flash = geo_to_xyz(flash_geo);
-
     #ifdef OP_PARALEL
     #pragma omp parallel for
     #endif
-    for (int i = 0; i < data_N; i++) {
-        double alpha = arc_len(ob_pos_geo[i].to2d(), flash_geo.to2d());
-        double l = sqrt(2*EARTH_R*(1-cos(alpha))*(EARTH_R+flash_geo.z) + flash_geo.z*flash_geo.z);
-        double d = EARTH_R * sin(alpha);
-        double gamma = asin(cos(alpha)*d/l);
-        ex_data->h0[i] = PI/2 - alpha - gamma;
-        // Relative flash_position
-        //vec3d_t flash_rel = flash - ob_pos[i];
-
-        // Height and length
-        //double d = flash * normal[i] - r[i];
-        //double l = flash_rel.length();
-
-        //ex_data->h0[i] = l == 0 ? PI/2 : asin(d/l);
-    }
+    for (int i = 0; i < data_N; i++)
+        ex_data->h0[i] = height_to_altitude(ob_pos_geo[i], flash_geo);
 }
 void data_t::process_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params) {
     #ifdef OP_PARALEL
@@ -521,19 +463,11 @@ void data_t::process_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params)
 void data_t::process_flash_traj_i(const vec3d_t &flash_pos, const vec3d_t params, double t, int i) {
     // Begin position
     vec3d_t begin = flash_pos + params*t;
+    vec3d_t begin_geo = xyz_to_geo(begin);
 
-    // Relative begin position
-    vec3d_t begin_rel = begin - ob_pos[i];
-
-    // Height and length
-    double d = begin * normal[i] - r[i];
-    double l = begin_rel.length();
-
-    vec3d_t begin_proj_rel = begin - normal[i]*d - ob_pos[i];
-
-    ex_data->hb[i] = l == 0 ? PI/2 : asin(d/l);
-    ex_data->zb[i] = azimuth(begin_proj_rel, normal[i], ob_pos_geo[i].to2d(), r[i]);
-    ex_data->a[i] = desent_angle(ex_data->hb[i], ex_data->zb[i], ex_data->h0[i], ex_data->z0[i]);
+    ex_data->hb[i] = height_to_altitude(ob_pos_geo[i], begin_geo);
+    ex_data->zb[i] = desent_angle(ob_pos_geo[i].to2d(), begin_geo.to2d());
+    ex_data->a[i] = desent_angle({ex_data->hb[i], ex_data->zb[i]}, {ex_data->h0[i], ex_data->z0[i]});
 }
 
 /*
@@ -543,9 +477,9 @@ double data_t::traj_error_i(const vec3d_t &flash_pos, const vec3d_t params, doub
     process_flash_traj_i(flash_pos, params, t, i);
     // Error
     double error = 0;
-    error += pow(angle_delta(ex_data->zb[i], ob_data->zb[i]), 2) * k_zb[i] * ob_e[i];
-    error += pow(angle_delta(ex_data->hb[i], ob_data->hb[i]), 2) * k_hb[i] * ob_e[i];
-    error += pow(angle_delta(ex_data->a[i], ob_data->a[i]), 2) * k_a[i] * ob_e[i];
-    return error;
+    error += pow(angle_delta(ex_data->zb[i], ob_data->zb[i]), 2) * k_zb[i];
+    error += pow(angle_delta(ex_data->hb[i], ob_data->hb[i]), 2) * k_hb[i];
+    error += pow(angle_delta(ex_data->a[i], ob_data->a[i]), 2) * k_a[i];
+    return error * ob_e[i];
 }
 

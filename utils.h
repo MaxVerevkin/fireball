@@ -3,19 +3,38 @@
 
 
 #include <math.h>
-
 #include "structs.h"
 #include "simd.h"
 
+
+/*
+ * Constants
+ */
 #define PI 3.141592653589793
 #define EARTH_R 6371000.
 
-// Translate geographical location to XYZ.
-vec3d_t geo_to_xyz(const vec3d_t &pos);
 
-// Calculate delta of two angles.
+/*
+ * Translate geographical location to XYZ and back.
+ */
+vec3d_t geo_to_xyz(const vec3d_t &geo);
+vec3d_t xyz_to_geo(const vec3d_t &xyz);
+
+
+
+/*
+ * Calculates height of flash above the sea, given
+ * geolocation of observer, geolocation of flash
+ * and altitude angle and back.
+ */
+double altitude_to_height(vec3d_t p, vec2d_t p0, double h);
+double height_to_altitude(vec3d_t p, vec3d_t p0);
+
+
+/*
+ * Calculate delta of two angles
+ */
 inline double angle_delta(double a1, double a2) {
-    //return PI - fmod((PI - a2 + a1), 2*PI);
     double delta = fmod(a2 - a1, 2*PI);
     double retval = abs(delta);
 
@@ -28,24 +47,29 @@ inline double angle_delta(double a1, double a2) {
     int sign = ((delta >= 0 && delta <= PI) || (delta >= -2*PI && delta <= -PI)) * 2 - 1;
     return retval * sign;
 }
-__m128d angle_delta_sq_pd(double *addr1, double *addr2);
+inline __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
+    double t1 = angle_delta(addr1[0], addr2[0]);
+    double t2 = angle_delta(addr1[1], addr2[1]);
+    t1 *= t1;
+    t2 *= t2;
+    return _mm_set_pd(t1, t2);
+}
 
-double calc_height(vec3d_t p, vec2d_t p0, double h);
 
-// Calculate tje length of arc on a sphere
-double arc_len(double h1, double z1, double h2, double z2);
+/*
+ * Calculate the length of arc on a sphere
+ */
 inline double arc_len(const vec2d_t &a, const vec2d_t &b) {
-    return arc_len(a.x, a.y, b.x, b.y);
+    double cos_l = sin(a.x)*sin(b.x) + cos(a.x)*cos(b.x)*cos(a.y-b.y);
+    return acos(cos_l);
 }
 
-// Calculate the azimuth given XYZ coordinates, North and East vectors.
-double azimuth(const vec3d_t &point, const vec3d_t &normal, const vec2d_t &observer, double r);
 
-// Calculate the disent angle for the begining of the path.
-double desent_angle(double h, double z, double h0, double z0);
-inline double desent_angle(const vec2d_t &start, const vec2d_t &end) {
-    return desent_angle(start.x, start.y, end.x, end.y);
-}
+/*
+ * Calculate the disent angle for two points
+ */
+double desent_angle(const vec2d_t &start, const vec2d_t &end);
+
 
 // Calculate normal
 vec3d_t normal_vec(double lat, double lon);

@@ -2,7 +2,9 @@
 #include <math.h>
 
 
-// Translate geographical location to XYZ.
+/*
+ * Translate geographical location to XYZ and back.
+ */
 vec3d_t geo_to_xyz(const vec3d_t &geo) {
     vec3d_t pos;
     double r = EARTH_R + geo.z;
@@ -12,77 +14,46 @@ vec3d_t geo_to_xyz(const vec3d_t &geo) {
     pos.z = r * sin(geo.y);
     return pos;
 }
-
-
-inline __m128d abs_pd(__m128d x) {
-    static const __m128d __minus_zero = _mm_set1_pd(-0.);
-    return _mm_andnot_pd(__minus_zero, x);
+vec3d_t xyz_to_geo(const vec3d_t &xyz) {
+    vec3d_t pos;
+    pos.z = xyz.length() - EARTH_R;
+    pos.x = atan(xyz.z / xyz.to2d().length());
+    pos.y = atan2(xyz.y, xyz.x);
+    return pos;
 }
 
 
-// Calculate delta of two angles.
-__m128d angle_delta_sq_pd(double *addr1, double *addr2) {
-    double t1 = angle_delta(addr1[0], addr2[0]);
-    double t2 = angle_delta(addr1[1], addr2[1]);
-    t1 *= t1;
-    t2 *= t2;
-    return _mm_set_pd(t1, t2);
-
-    static const __m128d __pi = _mm_set1_pd(PI);
-    static const __m128d __2pi = _mm_set1_pd(2*PI);
-
-    __m128d a1 = _mm_load_pd(addr1);
-    __m128d a2 = _mm_load_pd(addr2);
-
-    // Abs delta
-    __m128d delta = abs_pd(a1 - a2);
-
-    a1 = __2pi - delta; // a1 = 360 - delta
-    a2 = __pi  - delta; // a2 = 180 - delta
-
-    // if (abs(delta) > 180)
-    //     a1 = 360 - abs(delta);
-    delta = _mm_blendv_pd(delta, a1, a2);
-
-    return delta * delta; // return a1^2
-}
-
-double calc_height(vec3d_t p, vec2d_t p0, double h) {
+/*
+ * Calculates height of flash above the sea, given
+ * geolocation of observer, geolocation of flash
+ * and altitude angle and back.
+ */
+double altitude_to_height(vec3d_t p, vec2d_t p0, double h) {
     double cos_l = sin(p.x)*sin(p0.x) + cos(p.x)*cos(p0.x)*cos(p.y-p0.y);
     double sin_l = sqrt(1 - cos_l*cos_l);
     return (1/(cos_l - tan(h) * sin_l) - 1) * (EARTH_R+p.z) + p.z;
 }
-
-// Calculate the length of arc on a sphere
-double arc_len(double h1, double z1, double h2, double z2) {
-    double cos_l = sin(h1)*sin(h2) + cos(h1)*cos(h2)*cos(z1-z2);
-    return acos(cos_l);
+double height_to_altitude(vec3d_t p, vec3d_t p0) {
+    double cos_l = sin(p.x)*sin(p0.x) + cos(p.x)*cos(p0.x)*cos(p.y-p0.y);
+    double sin_l = sqrt(1 - cos_l*cos_l);
+    return atan((cos_l - (EARTH_R+p.z)/(EARTH_R+p0.z)) / sin_l);
 }
 
-// Calculate the azimuth given XYZ coordinates, North and East vectors.
-//double azimuth(const vec3d_t &point, const vec3d_t normal, double ob_lat, double ob_lon, double r) {
-double azimuth(const vec3d_t &point, const vec3d_t &normal, const vec2d_t &observer, double r) {
-    double inv_point_len = 1. / point.length();
 
-    vec3d_t north = north_vec(observer);
-    vec3d_t east = east_vec(observer.y);
 
-    double zc = acos(point * north * inv_point_len / north.length());
-    double cos_ze = point * east * inv_point_len / east.length();
-    return cos_ze >= 0 ? zc : 2*PI - zc;
-}
-
-// Calculate the disent angle for the begining of the path.
-double desent_angle(double h1, double z1, double h2, double z2) {
+/*
+ * Calculate the disent angle for two points
+ */
+double desent_angle(const vec2d_t &start, const vec2d_t &end) {
     // Delta z
-    double dz = angle_delta(z1, z2);
+    double dz = angle_delta(start.y, end.y);
 
     // Compute l
-    double cos_l = sin(h1)*sin(h2) + cos(h1)*cos(h2)*cos(dz);
+    double cos_l = sin(start.x)*sin(end.x) + cos(start.x)*cos(end.x)*cos(dz);
     double sin_l = sqrt(1 - cos_l*cos_l);
 
     // Compute angle.
-    double a = acos((sin(h2) - sin(h1)*cos_l) / (cos(h1)*sin_l));
+    double a = acos((sin(end.x) - sin(start.x)*cos_l) / (cos(start.x)*sin_l));
 
     // Undefined angle
     if (isnan(a))
@@ -91,6 +62,7 @@ double desent_angle(double h1, double z1, double h2, double z2) {
     int left = dz < 0;
     return 2*PI*left - (left*2 - 1) * a;
 }
+
 
 // Calculate normal
 vec3d_t normal_vec(double lat, double lon) {

@@ -16,6 +16,10 @@ vec2d_t vec2d_t::operator-(const vec2d_t &vec) const {
     return {x-vec.x, y-vec.y};
 }
 
+double vec2d_t::length() const {
+    return sqrt(x*x+y*y);
+}
+
 
 /////////////////
 /// 3D vector ///

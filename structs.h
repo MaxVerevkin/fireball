@@ -11,6 +11,8 @@ struct vec2d_t {
     vec2d_t operator*(double a) const;
     vec2d_t operator+(const vec2d_t &vec) const;
     vec2d_t operator-(const vec2d_t &vec) const;
+
+    double length() const;
 };
 
 

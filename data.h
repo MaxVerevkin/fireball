@@ -85,7 +85,6 @@ struct data_t {
      * of a given answer.
      */
     vec3d_t sigma_flash_pos(const vec3d_t &flash_geo);
-    //vec3d_t sigma_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params);
 
 
     /*
