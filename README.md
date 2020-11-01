@@ -47,7 +47,3 @@ Total ingored: 2
 $ git clone git@github.com:MaxVerevkin/fireball.git
 $ cd fireball && make
 ```
-Optionally, to enable parallelism (OpenMP), make with (remember to `make clean`):
-```
-$ make paralel
-```
