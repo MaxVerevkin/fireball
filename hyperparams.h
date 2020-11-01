@@ -7,27 +7,21 @@
 #define HYPERPARAMS_H
 
 
-#define MAX_ERROR_Z 5.
-#define MAX_ERROR_H 3.
-#define MAX_ERROR_H0 3.
-#define MAX_ERROR_A 5.
+#define MAX_ERROR_Z0 4.
+#define MAX_ERROR_H0 5.
+
+#define MAX_ERROR_START 50.
+#define MAX_ERROR_END 5.
+#define MAX_ERROR_A 3.9
+
 #define MAX_ERROR_T 5.
 
-#define ACCURACY_Z .03
-#define ACCURACY_H .03
-#define ACCURACY_A .03
-
-#define T_SEARCH_DEPTH 25
-#define T_SEARCH_MIN 10000
-#define T_SEARCH_MAX 300000
+#define ACCURACY_H 100 // Meters
+#define ACCURACY_Z .001 // = 2 degree
+#define ACCURACY_A .02 // = 5 degrees
 
 #define FLASH_2D_SEARCH_N 30
 #define FLASH_2D_SEARCH_DEPTH 12
-#define FLASH_3D_SEARCH_DEPTH 15
-#define z0_min 0.
-#define z0_max 100000.
-
-#define TRAJ_SEARCH_DEPTH 55
 
 
 #endif

@@ -3,107 +3,104 @@
 #include "hyperparams.h"
 
 #include <random>
-
 std::default_random_engine e(time(0));
 
 /*
  * Run binary-tree-like search.
  */
-vec2d_t btree_flash_2d_search(data_t &data) {
-
-    // For the search, latitude and longitude
-    // are defined in rangle of 20 degrees.
-    //
-    // This 20 degrees are calculated with:
-    //      a = 2 * acos(R/(R+h)),
-    // where R - radius of Earth
-    //       h - maximum height of flash
-    //
-    // TODO get latitude into account.
-
-    //vec2d_t min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
-    //vec2d_t max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
-    vec2d_t min_val = { data.mean_lat - PI/36, data.mean_lon - PI/36};
-    vec2d_t max_val = { data.mean_lat + PI/36, data.mean_lon + PI/36};
+vec2d2_t btree_2d_search(data_t &data, data_t::rate_2d_fn err_fn, data_t::sigma_2d_fn sig_fn) {
+    // TODO use sigmas.
+    vec2d_t min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
+    vec2d_t max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
     vec2d_t pos = (min_val + max_val) * .5;
 
+    for (int i = 0; i < FLASH_2D_SEARCH_N; i++) {
 
-    std::uniform_real_distribution<double> rand(min_val.x, max_val.x);
-    double best_error = INFINITY;
+        // Lat
+        for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
+            vec2d_t correction = {(max_val.x - min_val.x) * .01, 0};
+            double e1 = (data.*err_fn)(pos - correction);
+            double e2 = (data.*err_fn)(pos + correction);
 
-    for (int i = 0; i < 100000; i++) {
-        vec2d_t v = {rand(e), rand(e)};
+            if (e1 < e2)
+                max_val.x = pos.x;
+            else
+                min_val.x = pos.x;
 
-        double error = data.rate_z0(v);
-        if (error < best_error) {
-            best_error = error;
-            pos = v;
+            pos.x = (min_val.x + max_val.x) * .5;
         }
-    }
+        // Lon
+        for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
+            vec2d_t correction = {0, (max_val.y - min_val.y) * .01};
+            double e1 = (data.*err_fn)(pos - correction);
+            double e2 = (data.*err_fn)(pos + correction);
 
-    //for (int i = 0; i < FLASH_2D_SEARCH_N; i++) {
-
-        //// Lat
-        //for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
-            //vec2d_t correction = {(max_val.x - min_val.x) * .01, 0};
-            //double e1 = data.rate_z0(pos - correction);
-            //double e2 = data.rate_z0(pos + correction);
-
-            //if (e1 < e2)
-                //max_val.x = pos.x;
-            //else
-                //min_val.x = pos.x;
-
-            //pos.x = (min_val.x + max_val.x) * .5;
-        //}
-        //// Lon
-        //for (int j = 0; j < FLASH_2D_SEARCH_DEPTH; j++) {
-            //vec2d_t correction = {0, (max_val.y - min_val.y) * .01};
-            //double e1 = data.rate_z0(pos - correction);
-            //double e2 = data.rate_z0(pos + correction);
-
-            //if (e1 < e2)
-                //max_val.y = pos.y;
-            //else
-                //min_val.y = pos.y;
+            if (e1 < e2)
+                max_val.y = pos.y;
+            else
+                min_val.y = pos.y;
             
-            //pos.y = (min_val.y + max_val.y) * .5;
-        //}
+            pos.y = (min_val.y + max_val.y) * .5;
+        }
         
-        //// Reset bounds
-        //min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
-        //max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
-    //}
+        // Reset bounds
+        min_val = { data.mean_lat - PI/18, data.mean_lon - PI/18};
+        max_val = { data.mean_lat + PI/18, data.mean_lon + PI/18};
+    }
 
-    return pos;
+    return {pos, (data.*sig_fn)(pos)};
 }
 
 
-inline vec3d_t gen_vec(double z, double theta) {
-    double r = sqrt(1. - z*z);
-    return {cos(theta) * r, sin(theta) * r, z};
+/*
+ * Returns a pair vectors:
+ *  1) The middle point of a cloud
+ *  2) The standard deviation.
+ */
+inline vec2d2_t btree_end_cloud(data_t &data) {
+    return btree_2d_search(data, &data_t::rate_z0, &data_t::sigma_z0);
 }
-vec3d_t btree_traj_search(data_t &data, const vec3d_t flash_pos) {
-    //return {7.5/27.4, 23.5/27.4, 11.9/27.4};
+inline vec2d2_t btree_start_cloud(data_t &data) {
+    return btree_2d_search(data, &data_t::rate_zb, &data_t::sigma_zb);
+}
 
 
-    std::normal_distribution<double> rand(0.,1.);
+/*
+ * Takes in two clouds: of the start and the end of the trajectory.
+ * Returns trajectory that passes through those two clouds and
+ * fits the observer's data best.
+ */
+line3d_t btree_traj_search(data_t &data, const vec2d2_t &start_cloud, const vec2d2_t &end_cloud) {
+    //return {-7.5/27.4, -23.5/27.4, -11.9/27.4};
+
+
+    std::normal_distribution<double> start_lat(start_cloud.v1.x, start_cloud.v2.x);
+    std::normal_distribution<double> start_lon(start_cloud.v1.y, start_cloud.v2.y);
+
+    std::normal_distribution<double> end_lat(end_cloud.v1.x, end_cloud.v2.x);
+    std::normal_distribution<double> end_lon(end_cloud.v1.y, end_cloud.v2.y);
+
+    std::normal_distribution<double> start_height(100000., 30000);
+    std::normal_distribution<double> end_height(40000., 15000);
+
     double best_error = INFINITY;
-    vec3d_t best_ans;
+    line3d_t best_traj;
+    line3d_t traj;
 
-    for (int i = 0; i < 2000; i++) {
-        vec3d_t traj = {rand(e), rand(e), rand(e)};
-        traj = traj.normalized();
+    for (int i = 0; i < 10000; i++) {
+        traj.start = {start_lat(e), start_lon(e), start_height(e)};
+        traj.end = {end_lat(e), end_lon(e), end_height(e)};
 
-        double error = data.rate_flash_traj(flash_pos, traj);
+        double error = data.rate_traj(traj);
+
         if (error < best_error) {
             best_error = error;
-            best_ans = traj;
+            best_traj = traj;
         }
     }
-    return best_ans;
-}
 
+    return best_traj;
+}
 
 /*
  * main
@@ -118,114 +115,126 @@ int main(int argc, char **argv) {
     printf("Data is initialized\n");
 
     
-    ///////////////////////////
-    /// Find flash position ///
-    ///////////////////////////
-
+    ///////////////////////////////
+    /// Find the flash position ///
+    ///////////////////////////////
+    
     // (lat, lon) coordinates
-    vec2d_t flash_geo = btree_flash_2d_search(data);
-    for (int i = 0; i < 2; i++) {
-        data.eliminate_inconsistent_z0(flash_geo);
-        flash_geo = btree_flash_2d_search(data);
+    vec2d2_t flash_end_cloud = btree_end_cloud(data);
+    vec2d2_t flash_start_cloud = btree_start_cloud(data);
+    vec2d2_t flash_2d = flash_end_cloud;
+    for (int i = 0; i < 10; i++) {
+        data.eliminate_inconsistent_z0(flash_2d.v1);
+        flash_2d = btree_end_cloud(data);
     }
-
-    double flash_geo_error = data.rate_z0(flash_geo);
-    double n = data.data_Ne - data.k_count_z0;
-    printf("\nSummary on finding flash position:\n");
-    printf("    Total square-error         : %#9.6f rad\n", flash_geo_error);
-    printf("    Standard deviation of meaan: %#9.6f°\n", sqrt(flash_geo_error / n / (n-1))/PI*180);
 
     // height
-    vec3d_t flash_pos_geo = {flash_geo.x, flash_geo.y, data.calc_flash_height(flash_geo)};
-
-    //vec2d_t flash_geo = {33.1/180*PI, 34.3/180*PI};
-    //vec3d_t flash_pos_geo = {33.1/180*PI, 34.3/180*PI, 27400};
-    //data.eliminate_inconsistent_z0(flash_geo);
-    //data.eliminate_inconsistent_h0(flash_pos_geo);
-
-    vec3d_t flash_pos = geo_to_xyz(flash_pos_geo);
-    vec3d_t flash_sigma = data.sigma_flash_pos(flash_pos_geo);
+    vec2d_t flash_height = data.calc_flash_height(flash_2d.v1); // (x => value, y => sigma)
 
 
-    ///////////////////////////////
-    ///// Find flash trajectory ///
-    ///////////////////////////////
+    /////////////////////////////////
+    /// Find the flash trajectory ///
+    /////////////////////////////////
 
-    vec3d_t flash_traj = btree_traj_search(data, flash_pos);
-    for (int i = 0; i < 5; i++) {
-        data.eliminate_inconsistent_traj_data(flash_pos, flash_traj);
-        flash_traj = btree_traj_search(data, flash_pos);
+    line3d_t flash_traj = btree_traj_search(data, flash_start_cloud, flash_end_cloud);
+    for (int i = 0; i < 0; i++) {
+        data.eliminate_inconsistent_traj_data(flash_traj);
+        flash_traj = btree_traj_search(data, flash_start_cloud, flash_end_cloud);
+        //printf("round %i finished\n", i+1);
     }
-    vec3d_t flash_vel = data.get_flash_vel(flash_pos_geo, flash_traj);
-
-
-    double traj_error = data.rate_flash_traj(flash_pos, flash_traj);
-    n = data.data_Ne * 3 - data.k_count_traj;
-
-    double velocity = flash_vel.length();
-    data.normalize_t(velocity);
-
-    printf("\nSummary on finding flash trajectory:\n");
-    printf("    Total square-error:          %#9.6f rad\n", traj_error);
-    printf("    Standard deviation of meaan: %#9.6f°\n", sqrt(traj_error / n / (n-1))/PI*180);
+    data.process_traj(flash_traj);
+    vec3d_t flash_vel = global_to_local(flash_traj.vec(), flash_2d.v1) * 24000;
+    double velocity = 24000;
 
 
     // Print answer
     printf("\nAnswer:\n");
     printf("  Location:\n");
-    printf("    lat =  %8.4f ± %6.4f(°)\n", flash_pos_geo.x*180/PI, flash_sigma.x*180/PI);
-    printf("    lon =  %8.4f ± %6.4f(°)\n", flash_pos_geo.y*180/PI, flash_sigma.y*180/PI);
-    printf("    z   =  %8.4f ± %6.4f(km)\n", flash_pos_geo.z/1000, flash_sigma.z/1000);
+    printf("    lat =  %8.4f ± %6.4f(°)\n", flash_2d.v1.x*180/PI, flash_2d.v2.x*180/PI);
+    printf("    lon =  %8.4f ± %6.4f(°)\n", flash_2d.v1.y*180/PI, flash_2d.v2.y*180/PI);
+    printf("    z   =  %8.4f ± %6.4f(km)\n", flash_height.x/1000, flash_height.y/1000);
     printf("  Velocity: %8.3f(km/s)\n", velocity/1000);
     printf("    Local:\n");
     printf("      v_East  =  %8.3f(km/s)\n", flash_vel.x/1000);
     printf("      v_North =  %8.3f(km/s)\n", flash_vel.y/1000);
     printf("      v_z     =  %8.3f(km/s)\n", flash_vel.z/1000);
     printf("    Global:\n");
-    printf("      v_x = %8.3f(km/s)\n", -flash_traj.x * velocity / 1000);
-    printf("      v_y = %8.3f(km/s)\n", -flash_traj.y * velocity / 1000);
-    printf("      v_z = %8.3f(km/s)\n", -flash_traj.z * velocity / 1000);
+    printf("      v_x = %8.3f(km/s)\n", flash_traj.vec().x * velocity / 1000);
+    printf("      v_y = %8.3f(km/s)\n", flash_traj.vec().y * velocity / 1000);
+    printf("      v_z = %8.3f(km/s)\n", flash_traj.vec().z * velocity / 1000);
 
     // Print processed answer for each observer
-    printf("\n                  i     z0°       h0°       zb°       hb°        A°        t(s)    w(°/s)\n");
+    printf("\nProcessed answer:\n");
+    printf("       |            Start           |  |             End            |  |    Desent angle   |\n");
+    printf(" i     |   z°         h°     E°   U |  |   z°         h°     E°   U |  |   A°       E°   U |\n");
     for (int i = 0; i < data.data_N; i++) {
-        printf("Processed Answer (%i): %#7.3f | %7.3f | %7.3f | %7.3f | %7.3f | %7.3f | ", i+1,
-                data.ex_data->z0[i]*180/PI, data.ex_data->h0[i]*180/PI,
-                data.ex_data->zb[i]*180/PI, data.ex_data->hb[i]*180/PI,
-                data.ex_data->a[i]*180/PI, data.ex_data->t[i]);
-        printf("%7.3f\n", arc_len({data.ex_data->h0[i],
-                    data.ex_data->z0[i]},
-                    {data.ex_data->hb[i],
-                    data.ex_data->zb[i]})
-                /data.ex_data->t[i]/PI*180);
+        printf("%3i |  | %3.0f/%3.0f | %3.0f/%3.0f | %2.0f | %c |  | %3.0f/%3.0f | %3.0f/%3.0f | %2.0f | %c |  | %3.0f/%3.0f | %3.0f | %c |\n", i+1,
+
+                DEG(data.ex_data->zb[i]),
+                DEG(data.ob_data->zb[i]),
+                DEG(data.ex_data->hb[i]),
+                DEG(data.ob_data->hb[i]),
+                DEG(sqrt(data.traj_error_start[i]/data.ob_e[i])),
+                ' ' + (int)data.k_traj_start[i] * ('*' - ' '),
+
+                DEG(data.ex_data->z0[i]),
+                DEG(data.ob_data->z0[i]),
+                DEG(data.ex_data->h0[i]),
+                DEG(data.ob_data->h0[i]),
+                DEG(sqrt(data.traj_error_end[i]/data.ob_e[i])),
+                ' ' + (int)data.k_traj_end[i] * ('*' - ' '),
+
+                DEG(data.ex_data->a[i]),
+                DEG(data.ob_data->a[i]),
+                abs(DEG(data.ex_data->a[i]) - DEG(data.ob_data->a[i])),
+                ' ' + (int)data.k_traj_a[i] * ('*' - ' ')
+                );
+                if (data.ex_data->hb[i] == data.ex_data->h0[i])
+                    printf("dasdas\n");
     }
 
-    // Print ignored data
-    printf("\n");
-    int n_ignored = 0;
+    // Print stats on data filtering
+    printf("\nStatistics on data filtering:\n");
+    int z0_total = 0, z0_used = 0;
+    int h0_total = 0, h0_used = 0;
+    int start_total = 0, start_used = 0;
+    int end_total = 0, end_used = 0;
+    int a_total = 0, a_used = 0;
     for (int i = 0; i < data.data_N; i++) {
-        if (!data.k_z0[i] && data.ob_data->z0[i] >= 0) {
-            printf("Ignore: 'azimuth end'    for observer %i\n", i+1);
-            n_ignored++;
+        if (data.ob_data->z0[i] >= 0) {
+            z0_total++;
+            if (data.k_z0[i])
+                z0_used++;
         }
-        if (!data.k_h0[i] && data.ob_data->h0[i] >= 0) {
-            printf("Ignore: 'altitude end'   for observer %i\n", i+1);
-            n_ignored++;
+        if (data.ob_data->h0[i] >= 0) {
+            h0_total++;
+            if (data.k_h0[i])
+                h0_used++;
         }
-        if (!data.k_zb[i] && data.ob_data->zb[i] >= 0) {
-            printf("Ignore: 'azimuth begin'  for observer %i\n", i+1);
-            n_ignored++;
+        if (data.ob_data->zb[i] >= 0 && data.ob_data->hb[i] >= 0) {
+            start_total++;
+            if (data.k_traj_start[i])
+                start_used++;
         }
-        if (!data.k_hb[i] && data.ob_data->hb[i] >= 0) {
-            printf("Ignore: 'altitude begin' for observer %i\n", i+1);
-            n_ignored++;
+        if (data.ob_data->z0[i] >= 0 && data.ob_data->h0[i] >= 0) {
+            end_total++;
+            if (data.k_traj_end[i])
+                end_used++;
         }
-        if (!data.k_a[i] && data.ob_data->a[i] >= 0) {
-            printf("Ignore: 'desent_angle'   for observer %i\n", i+1);
-            n_ignored++;
+        if (data.ob_data->a[i] >= 0) {
+            a_total++;
+            if (data.k_traj_a[i])
+                a_used++;
         }
     }
-    printf("Total ingored: %i\n\n", n_ignored);
+    printf("Azimuth End  - %i used from %i\n", z0_used, z0_total);
+    printf("Altitude End - %i used from %i\n", h0_used, h0_total);
+    printf("Start        - %i used from %i\n", start_used, start_total);
+    printf("End          - %i used from %i\n", end_used, end_total);
+    printf("Desent angle - %i used from %i\n", a_used, a_total);
+    printf("Total - %i used from %i\n\n",
+            z0_used + h0_used + start_used + end_used + a_used,
+            z0_total + h0_total + start_total + end_total + a_total);
 
     // Exit
     return 0;

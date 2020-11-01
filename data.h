@@ -12,31 +12,36 @@
  */
 struct data_t {
 
+    // Functions' defenitions
+    typedef double (data_t::*rate_2d_fn)(const vec2d_t&);
+    typedef vec2d_t (data_t::*sigma_2d_fn)(const vec2d_t&);
+
+    // Observers' number
     int data_N;
 
     // Observer's data
-    alignas(16) vec3d_t *ob_pos;     // Position in global coorinates (x,y,z)
-    alignas(16) vec3d_t *ob_pos_geo; // Position in geographical coordinates (lat,lon,z)
-    alignas(16) double *ob_e;        // Experience
+    vec3d_t *ob_pos;     // Position in global coorinates (x,y,z)
+    vec3d_t *ob_pos_geo; // Position in geographical coordinates (lat,lon,z)
+    double *ob_e;        // Experience
 
     data_set_t *ob_data; // Data given by observer
     data_set_t *ex_data; // Data produced by answer
 
+    // Error of trajecroty
+    double *traj_error_start;
+    double *traj_error_end;
+
     // Additional variables
-    int k_count_z0 = 0;
-    int k_count_h0 = 0;
-    int k_count_traj = 0;
-    double data_Ne = 0.;
     double mean_lat;
     double mean_lon;
-    alignas(16) vec3d_t *normal;
-    alignas(16) double *r;
     // Used to ignore inconsistent data
-    alignas(16) double *k_z0;
-    alignas(16) double *k_h0;
-    alignas(16) double *k_zb;
-    alignas(16) double *k_hb;
-    alignas(16) double *k_a;
+    double *k_z0;
+    double *k_h0;
+    double *k_traj_start;
+    double *k_traj_start_tmp;
+    double *k_traj_end;
+    double *k_traj_end_tmp;
+    double *k_traj_a;
 
     /*
      * Initialize the data
@@ -55,54 +60,39 @@ struct data_t {
      * Sets K=0 for all data which square-error is
      * max_error_k times greater than mean square-error
      */
+    int eliminate(double ne, double total, double *errors, double *k, double max_e, double acc); // Abstracttial function
     void eliminate_inconsistent_z0(const vec2d_t &flash_geo);
-    void eliminate_inconsistent_traj_data(const vec3d_t &flash_pos, const vec3d_t params);
-
-    /*
-     * Translate flash trajectory vector to local velocity.
-     */
-    vec3d_t get_flash_vel(const vec3d_t &flash_geo, const vec3d_t &traj);
+    void eliminate_inconsistent_traj_data(const line3d_t &traj);
     
-    /*
-     * Calculate the height of a flash given it's location.
-     */
-    double calc_flash_height(const vec2d_t &flash);
-
-    /*
-     * Normalize aobserver's 't'
-     */
-    void normalize_t(double velocity);
-
 
     /*
      * Return square-error of a given answer.
      */
     double rate_z0(const vec2d_t &flash_geo);
-    double rate_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params);
+    double rate_zb(const vec2d_t &flash_geo);
+    double rate_traj(const line3d_t &traj);
+
+
+    /*
+     * Calculate the height of a flash given it's location.
+     */
+    vec2d_t calc_flash_height(const vec2d_t &flash_2d);
 
     /*
      * Return sigma (standard deviation)
      * of a given answer.
      */
-    vec3d_t sigma_flash_pos(const vec3d_t &flash_geo);
+    vec2d_t sigma_z0(const vec2d_t &flash);
+    vec2d_t sigma_zb(const vec2d_t &flash);
+    double sigma_h0(const vec3d_t &flash);
 
 
     /*
      * Fills in the 'expected' values.
      */
     void process_z0(const vec2d_t &flash_geo);
-    void process_h0(const vec3d_t &flash_geo);
-    void process_flash_traj(const vec3d_t &flash_pos, const vec3d_t &params);
-
-    /*
-     * Procees answer for the trajectory for one observer given 't'.
-     */
-    void process_flash_traj_i(const vec3d_t &flash_pos, const vec3d_t params, double t, int i);
-
-    /*
-     * Returns square-error the trajectory for current answer given 't'
-     */
-    double traj_error_i(const vec3d_t &flash_pos, const vec3d_t params, double t, int i);
+    void process_zb(const vec2d_t &flash_geo);
+    void process_traj(const line3d_t &traj_line);
 };
 
 

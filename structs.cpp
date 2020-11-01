@@ -1,5 +1,6 @@
 #include "structs.h"
 #include <cmath>
+#include "utils.h"
 
 
 /////////////////
@@ -44,6 +45,14 @@ vec3d_t vec3d_t::operator+(const vec3d_t &vec) const {
     return {x+vec.x, y+vec.y, z+vec.z};
 }
 
+vec3d_t vec3d_t::xprod(const vec3d_t &vec) const {
+    vec3d_t retval;
+    retval.x = y*vec.z - z*vec.y;
+    retval.y = z*vec.x - x*vec.z;
+    retval.z = x*vec.y - y*vec.x;
+    return retval;
+}
+
 double vec3d_t::length() const {
     return sqrt(x*x+y*y+z*z);
 }
@@ -54,6 +63,11 @@ vec3d_t vec3d_t::normalized() const {
 
 vec2d_t vec3d_t::to2d() const {
     return {x, y};
+}
+
+
+vec3d_t line3d_t::vec() const {
+    return (geo_to_xyz(end) - geo_to_xyz(start)).normalized();
 }
 
 

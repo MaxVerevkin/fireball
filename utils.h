@@ -15,26 +15,62 @@
 
 
 /*
- * Translate geographical location to XYZ and back.
+ * Macros
  */
+#define DEG(x) (x*180./PI)
+#define RAD(x) (x*PI/180.)
+
+
+/*
+ * Returns 1 if observation is acceptable.
+ */
+double is_observation_correct(const vec3d_t &flash,
+        const vec3d_t &traj,
+        const vec3d_t &observer,
+        const vec3d_t &observation);
+
+
+/*
+ * Translate point from polar to xyz and back
+ */
+vec3d_t polar_to_xyz(const vec2d_t &polar);
+vec2d_t xyz_to_polar(const vec3d_t &xyz);
+
+
+/*
+ * Translate geographical location to XYZ and back
+ */
+vec3d_t geo_to_xyz(const vec2d_t &geo);
 vec3d_t geo_to_xyz(const vec3d_t &geo);
 vec3d_t xyz_to_geo(const vec3d_t &xyz);
 
 
+/* 
+ * Translate global vector to local and back
+ */
+vec3d_t global_to_local(const vec3d_t &vec, const vec2d_t pos_geo);
+vec3d_t local_to_global(const vec3d_t &vec, const vec2d_t pos_geo);
+
+
 
 /*
- * Calculates height of flash above the sea, given
- * geolocation of observer, geolocation of flash
- * and altitude angle and back.
+ * Calculate the height of flash above the sea, given
+ * geo-location of observer, geo-location of flash
+ * and altitude angle. And vise versa.
  */
 double altitude_to_height(vec3d_t p, vec2d_t p0, double h);
 double height_to_altitude(vec3d_t p, vec3d_t p0);
 
 
 /*
- * Calculate delta of two angles
+ * Calculate the absolute difference of 2 angles.
  */
 inline double angle_delta(double a1, double a2) {
+    //return atan2(sin(a2-a1), cos(a2-a1));
+
+    //double a = a2 - a1;
+    //return mod((a + PI), 2*PI) - PI;
+
     double delta = fmod(a2 - a1, 2*PI);
     double retval = abs(delta);
 
@@ -46,13 +82,6 @@ inline double angle_delta(double a1, double a2) {
 
     int sign = ((delta >= 0 && delta <= PI) || (delta >= -2*PI && delta <= -PI)) * 2 - 1;
     return retval * sign;
-}
-inline __m128d angle_delta_sq_pd(double *addr1, double *addr2) {
-    double t1 = angle_delta(addr1[0], addr2[0]);
-    double t2 = angle_delta(addr1[1], addr2[1]);
-    t1 *= t1;
-    t2 *= t2;
-    return _mm_set_pd(t1, t2);
 }
 
 
@@ -72,18 +101,13 @@ double desent_angle(const vec2d_t &start, const vec2d_t &end);
 
 
 // Calculate normal
-vec3d_t normal_vec(double lat, double lon);
-inline vec3d_t normal_vec(const vec2d_t &vec) {
-    return normal_vec(vec.x, vec.y);
-}
+vec3d_t normal_vec(const vec2d_t &p);
 
 // Genetare vector pointing to Notrh
 vec3d_t north_vec(const vec2d_t &ob);
 // Genetare vector pointing to East
 vec3d_t east_vec(double lon);
 
-// Translate global vector to local
-vec3d_t global_to_local(vec3d_t vec, double lat, double lon);
 
 
 #endif
