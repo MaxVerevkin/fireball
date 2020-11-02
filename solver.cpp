@@ -87,7 +87,7 @@ line3d_t btree_traj_search(data_t &data, const vec2d2_t &start_cloud, const vec2
     line3d_t best_traj;
     line3d_t traj;
 
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 50000; i++) {
         traj.start = {start_lat(e), start_lon(e), start_height(e)};
         traj.end = {end_lat(e), end_lon(e), end_height(e)};
 
@@ -120,9 +120,9 @@ int main(int argc, char **argv) {
     ///////////////////////////////
     
     // (lat, lon) coordinates
-    vec2d2_t flash_end_cloud = btree_end_cloud(data);
-    vec2d2_t flash_start_cloud = btree_start_cloud(data);
-    vec2d2_t flash_2d = flash_end_cloud;
+    vec2d2_t end_cloud = btree_end_cloud(data);
+    vec2d2_t start_cloud = btree_start_cloud(data);
+    vec2d2_t flash_2d = end_cloud;
     for (int i = 0; i < 10; i++) {
         data.eliminate_inconsistent_z0(flash_2d.v1);
         flash_2d = btree_end_cloud(data);
@@ -136,14 +136,18 @@ int main(int argc, char **argv) {
     /// Find the flash trajectory ///
     /////////////////////////////////
 
-    line3d_t flash_traj = btree_traj_search(data, flash_start_cloud, flash_end_cloud);
-    for (int i = 0; i < 0; i++) {
-        data.eliminate_inconsistent_traj_data(flash_traj);
-        flash_traj = btree_traj_search(data, flash_start_cloud, flash_end_cloud);
-        //printf("round %i finished\n", i+1);
+    line3d_t traj;
+    //line3d_t traj = {
+        //{0.586361, 0.596406, 136777.302050},
+        //{0.586076, 0.583937, 41169.047112}
+    //};
+    for (int i = 0; i < 5; i++) {
+        traj = btree_traj_search(data, start_cloud, end_cloud);
+        data.eliminate_inconsistent_traj_data(traj);
     }
-    data.process_traj(flash_traj);
-    vec3d_t flash_vel = global_to_local(flash_traj.vec(), flash_2d.v1) * 24000;
+    //printf("final: %f\n", data.rate_traj(traj));
+    //printf("start: %f, %f, %f\nend: %f, %f, %f\n", traj.start.x, traj.start.y, traj.start.z, traj.end.x, traj.end.y, traj.end.z);
+    vec3d_t flash_vel = global_to_local(traj.vec(), flash_2d.v1) * 24000;
     double velocity = 24000;
 
 
@@ -159,9 +163,9 @@ int main(int argc, char **argv) {
     printf("      v_North =  %8.3f(km/s)\n", flash_vel.y/1000);
     printf("      v_z     =  %8.3f(km/s)\n", flash_vel.z/1000);
     printf("    Global:\n");
-    printf("      v_x = %8.3f(km/s)\n", flash_traj.vec().x * velocity / 1000);
-    printf("      v_y = %8.3f(km/s)\n", flash_traj.vec().y * velocity / 1000);
-    printf("      v_z = %8.3f(km/s)\n", flash_traj.vec().z * velocity / 1000);
+    printf("      v_x = %8.3f(km/s)\n", traj.vec().x * velocity / 1000);
+    printf("      v_y = %8.3f(km/s)\n", traj.vec().y * velocity / 1000);
+    printf("      v_z = %8.3f(km/s)\n", traj.vec().z * velocity / 1000);
 
     // Print processed answer for each observer
     printf("\nProcessed answer:\n");
@@ -186,11 +190,9 @@ int main(int argc, char **argv) {
 
                 DEG(data.ex_data->a[i]),
                 DEG(data.ob_data->a[i]),
-                abs(DEG(data.ex_data->a[i]) - DEG(data.ob_data->a[i])),
+                abs(DEG(angle_delta(data.ex_data->a[i], data.ob_data->a[i]))),
                 ' ' + (int)data.k_traj_a[i] * ('*' - ' ')
                 );
-                if (data.ex_data->hb[i] == data.ex_data->h0[i])
-                    printf("dasdas\n");
     }
 
     // Print stats on data filtering

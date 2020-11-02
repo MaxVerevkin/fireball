@@ -12,7 +12,7 @@ double is_observation_correct(const vec3d_t &flash,
 
     vec3d_t flash_rel = flash - observer;
     vec3d_t perpendic = flash_rel.xprod(traj);
-    perpendic = perpendic.xprod(traj);
+    perpendic = traj.xprod(perpendic);
 
     return perpendic * observation > 0;
 }

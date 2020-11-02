@@ -93,8 +93,8 @@ void data_t::reset_k_h0() {
 }
 void data_t::reset_k_traj() {
     for (int i = 0; i < data_N; i++) {
-        k_traj_start[i] = ob_data->zb[i] >= 0 && ob_data->hb >= 0;
-        k_traj_end[i] = ob_data->z0[i] >= 0 && ob_data->h0 >= 0;
+        k_traj_start[i] = ob_data->zb[i] >= 0 && ob_data->hb[i] >= 0;
+        k_traj_end[i] = ob_data->z0[i] >= 0 && ob_data->h0[i] >= 0;
         k_traj_a[i] = ob_data->a[i] >= 0;
     }
 }
@@ -105,7 +105,6 @@ void data_t::reset_k_traj() {
  * max_error_k times greater than mean square-error
  */
 int data_t::eliminate(double ne, double total, double *errors, double *k, double max_e, double acc) {
-    //printf("%f\n", ne);
     int k_count = 0;
     bool clear;
     do {
@@ -161,6 +160,8 @@ void data_t::eliminate_inconsistent_traj_data(const line3d_t &traj) {
         k_traj_start[i] *= k_traj_start_tmp[i];
         k_traj_end[i] *= k_traj_end_tmp[i];
 
+        //printf("i=%i hb=%f k_traj_start_tmp=%f k_traj_start=%f\n", i+1, DEG(ob_data->hb[i]), k_traj_start_tmp[i], k_traj_start[i]);
+
         // Shortcuts
         double e = ob_e[i];
 
@@ -172,7 +173,7 @@ void data_t::eliminate_inconsistent_traj_data(const line3d_t &traj) {
         // Errors
         start += traj_error_start[i] * k_traj_start[i];
         end += traj_error_end[i] * k_traj_end[i];
-        a_errors[i] = pow(ob_data->a[i] - ex_data->a[i], 2) * e * k_traj_a[i];
+        a_errors[i] = pow(angle_delta(ob_data->a[i], ex_data->a[i]), 2) * e * k_traj_a[i];
         a += a_errors[i];
     }
     //int eliminate(double ne, double total, double *errors, double *k, double max_e, double acc);
@@ -210,13 +211,12 @@ double data_t::rate_traj(const line3d_t &traj) {
     double error = 0, count = 0;
     for (int i = 0; i < data_N; i++) {
         // Shortcuts
-        double e = ob_e[i];
         double k_start_i = k_traj_start[i] * k_traj_start_tmp[i];
         double k_end_i = k_traj_end[i] * k_traj_end_tmp[i];
-        count += e*(k_traj_a[i] + k_start_i + k_end_i);
+        count += ob_e[i]*(k_traj_a[i] + k_start_i + k_end_i);
 
         // Sum up errors
-        error += pow(ob_data->a[i] - ex_data->a[i], 2) * k_traj_a[i] * e;
+        error += pow(angle_delta(ob_data->a[i], ex_data->a[i]), 2) * k_traj_a[i] * ob_e[i];
         error += traj_error_start[i] * k_start_i;
         error += traj_error_end[i] * k_end_i;
     }
@@ -342,7 +342,6 @@ vec2d_t data_t::sigma_zb(const vec2d_t &flash) {
 
         double d = flash_xyz * n;
         vec3d_t pp = xyz_to_geo(flash_xyz - n*d);
-        //printf("%f %f\n", pp.x/PI*180, pp.y/PI*180);
 
         d_lat += pow(flash.x - pp.x, 2) * e;
         d_lon += pow(flash.y - pp.y, 2) * e;
@@ -455,5 +454,6 @@ void data_t::process_traj(const line3d_t &traj_line) {
         if (k_traj_end[i] * k_traj_end_tmp[i] == 0)
             end = end_pol;
         ex_data->a[i] = desent_angle(start, end);
+        
     }
 }
