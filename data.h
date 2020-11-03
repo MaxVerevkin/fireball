@@ -91,6 +91,12 @@ struct data_t {
     void process_z0(const vec2d_t &flash_geo);
     void process_zb(const vec2d_t &flash_geo);
     void process_traj(const line3d_t &traj_line);
+
+
+    /*
+     * Calculate the magnitude of velocity given trajectory.
+     */
+    double calc_speed(const line3d_t &traj_line);
 };
 
 

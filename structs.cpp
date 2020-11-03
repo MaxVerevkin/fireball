@@ -81,4 +81,5 @@ data_set_t::data_set_t(int n) {
     zb = new double[n];
     hb = new double[n];
     a =  new double[n];
+    t =  new double[n];
 }

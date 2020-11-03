@@ -74,8 +74,8 @@ inline vec2d2_t btree_start_cloud(data_t &data) {
  */
 line3d_t btree_traj_search(data_t &data, const vec2d2_t &start_cloud, const vec2d2_t &end_cloud) {
 
-    std::normal_distribution<double> start_lat(start_cloud.v1.x, start_cloud.v2.x);
-    std::normal_distribution<double> start_lon(start_cloud.v1.y, start_cloud.v2.y);
+    std::normal_distribution<double> start_lat(start_cloud.v1.x, start_cloud.v2.x*3);
+    std::normal_distribution<double> start_lon(start_cloud.v1.y, start_cloud.v2.y*3);
 
     std::normal_distribution<double> end_lat(end_cloud.v1.x, end_cloud.v2.x);
     std::normal_distribution<double> end_lon(end_cloud.v1.y, end_cloud.v2.y);
@@ -145,10 +145,9 @@ int main(int argc, char **argv) {
         traj = btree_traj_search(data, start_cloud, end_cloud);
         data.eliminate_inconsistent_traj_data(traj);
     }
-    //printf("start: %f, %f, %f\nend: %f, %f, %f\n", traj.start.x, traj.start.y, traj.start.z, traj.end.x, traj.end.y, traj.end.z);
     data.process_traj(traj);
-    vec3d_t flash_vel = global_to_local(traj.vec(), flash_2d.v1);
-
+    double speed = data.calc_speed(traj)/1000;
+    vec3d_t flash_vel = global_to_local(traj.vec(), flash_2d.v1) * speed;
 
     // Print answer
     printf("\nAnswer:\n");
@@ -156,15 +155,15 @@ int main(int argc, char **argv) {
     printf("    lat =  %8.4f ± %6.4f(°)\n", flash_2d.v1.x*180/PI, flash_2d.v2.x*180/PI);
     printf("    lon =  %8.4f ± %6.4f(°)\n", flash_2d.v1.y*180/PI, flash_2d.v2.y*180/PI);
     printf("    z   =  %8.4f ± %6.4f(km)\n", flash_height.x/1000, flash_height.y/1000);
-    printf("  Velocity (normalized):\n");
+    printf("  Velocity: %6.2f(km/s)\n", speed);
     printf("    Local:\n");
     printf("      v_East  =  %7.4f\n", flash_vel.x);
     printf("      v_North =  %7.4f\n", flash_vel.y);
     printf("      v_z     =  %7.4f\n", flash_vel.z);
     printf("    Global:\n");
-    printf("      v_x = %7.4f\n", traj.vec().x);
-    printf("      v_y = %7.4f\n", traj.vec().y);
-    printf("      v_z = %7.4f\n", traj.vec().z);
+    printf("      v_x = %7.4f\n", traj.vec().x*speed);
+    printf("      v_y = %7.4f\n", traj.vec().y*speed);
+    printf("      v_z = %7.4f\n", traj.vec().z*speed);
 
     // Print processed answer for each observer
     printf("\nProcessed answer:\n");

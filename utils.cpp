@@ -99,11 +99,13 @@ vec3d_t local_to_global(const vec3d_t &vec, const vec2d_t pos_geo) {
 double altitude_to_height(vec3d_t p, vec2d_t p0, double h) {
     double cos_l = sin(p.x)*sin(p0.x) + cos(p.x)*cos(p0.x)*cos(p.y-p0.y);
     double sin_l = sqrt(1 - cos_l*cos_l);
+    
     return (1/(cos_l - tan(h) * sin_l) - 1) * (EARTH_R+p.z) + p.z;
 }
 double height_to_altitude(vec3d_t p, vec3d_t p0) {
     double cos_l = sin(p.x)*sin(p0.x) + cos(p.x)*cos(p0.x)*cos(p.y-p0.y);
     double sin_l = sqrt(1 - cos_l*cos_l);
+
     return atan((cos_l - (EARTH_R+p.z)/(EARTH_R+p0.z)) / sin_l);
 }
 

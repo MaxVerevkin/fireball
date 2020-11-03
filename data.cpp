@@ -40,10 +40,10 @@ data_t::data_t(const char *file) {
     double cos_lon = 0;
     for (int i = 0; i < data_N; i++) {
         // Read from file
-        fscanf(infile, "%lf %lf %lf %lf %lf %lf %lf %lf\n",
+        fscanf(infile, "%lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
                 &(ob_pos_geo+i)->x, &(ob_pos_geo+i)->y, &(ob_pos_geo+i)->z,
                 ob_data->a+i, ob_data->zb+i, ob_data->hb+i,
-                ob_data->z0+i, ob_data->h0+i);
+                ob_data->z0+i, ob_data->h0+i, ob_data->t+i);
 
         // Translate
         ob_pos_geo[i].x *= PI / 180;
@@ -102,8 +102,8 @@ void data_t::reset_k_traj() {
  * max_error_k times greater than mean square-error
  */
 void data_t::eliminate(double count, double total, double *errors, double *k, double max_e, double acc) {
-    bool clear;
-    do {
+    bool clear = false;
+    while (!clear) {
         clear = true;
         for (int i = 0; i < data_N; i++) {
 
@@ -120,7 +120,7 @@ void data_t::eliminate(double count, double total, double *errors, double *k, do
                 count--;
             }
         }
-    } while (!clear);
+    }
 }
 void data_t::eliminate_inconsistent_z0(const vec2d_t &flash_geo) {
     reset_k_z0();
@@ -158,31 +158,20 @@ void data_t::eliminate_inconsistent_traj_data(const line3d_t &traj) {
         // Counts
         start_n += k_traj_start[i];
         end_n += k_traj_end[i];
+        a_n += k_traj_a[i];
 
         // Errors
+        a_errors[i] = pow(angle_delta(ob_data->a[i], ex_data->a[i]), 2);
         start += traj_error_start[i] * k_traj_start[i];
         end += traj_error_end[i] * k_traj_end[i];
-
-        //if (traj_error_start[i] > .03)
-            //k_traj_start[i] = 0;
-        
-        //if (traj_error_end[i] > .03)
-            //k_traj_end[i] = 0;
-    }
-    eliminate(start_n, start, traj_error_start, k_traj_start, MAX_ERROR_START, ACCURACY_START);
-    eliminate(end_n, end, traj_error_end, k_traj_end, MAX_ERROR_END, ACCURACY_END);
-
-    // A
-    process_traj(traj);
-    for (int i = 0; i < data_N; i++) {
-        a_errors[i] = pow(angle_delta(ob_data->a[i], ex_data->a[i]), 2);
         a += a_errors[i] * k_traj_a[i];
-        //if (a_errors[i] > .03)
-            //k_traj_a[i] = 0;
-        a_n += k_traj_a[i];
     }
     //int eliminate(double count, double total, double *errors, double *k, double max_e, double acc);
+    eliminate(start_n, start, traj_error_start, k_traj_start, MAX_ERROR_START, ACCURACY_START);
+    eliminate(end_n, end, traj_error_end, k_traj_end, MAX_ERROR_END, ACCURACY_END);
     eliminate(a_n, a, a_errors, k_traj_a, MAX_ERROR_A, ACCURACY_A);
+
+    // Free memory
     delete a_errors;
 }
 
@@ -284,7 +273,6 @@ vec2d_t data_t::calc_flash_height(const vec2d_t &flash_2d) {
 
 
 
-
 /*
  * Return sigma (standard deviation)
  * of a given answer.
@@ -370,6 +358,7 @@ void data_t::process_zb(const vec2d_t &flash_geo) {
 void data_t::process_traj(const line3d_t &traj_line) {
     vec3d_t flash = geo_to_xyz(traj_line.end);
     vec3d_t traj = traj_line.vec();
+
     for (int i = 0; i < data_N; i++) {
         // Shortcuts
         double &z0 = ob_data->z0[i];
@@ -381,11 +370,11 @@ void data_t::process_traj(const line3d_t &traj_line) {
 
         // Transalte start/end points to polar
         vec2d_t start_pol = {
-            height_to_altitude(ob_pos[i], traj_line.start),
+            height_to_altitude(ob_pos_geo[i], traj_line.start),
             desent_angle(observer, traj_line.start.to2d())
         };
         vec2d_t end_pol = {
-            height_to_altitude(ob_pos[i], traj_line.end),
+            height_to_altitude(ob_pos_geo[i], traj_line.end),
             desent_angle(observer, traj_line.end.to2d())
         };
 
@@ -406,9 +395,9 @@ void data_t::process_traj(const line3d_t &traj_line) {
         traj_accept_start[i] = is_observation_correct(flash, traj, ob_pos[i], k_start);
         traj_accept_end[i] =   is_observation_correct(flash, traj, ob_pos[i], k_end);
 
-        // Project observations to that plane and normalize
-        k_start = (k_start - plane*(plane * k_start)).normalized();
-        k_end = (k_end - plane*(plane * k_end)).normalized();
+        // Project observations to that plane
+        k_start = (k_start - plane*(plane * k_start));
+        k_end = (k_end - plane*(plane * k_end));
 
         // Translate the observation back to local
         k_start = global_to_local(k_start, observer);
@@ -427,13 +416,60 @@ void data_t::process_traj(const line3d_t &traj_line) {
             traj_accept_start[i] = 0;
         if (end.x < 0)
             traj_accept_end[i] = 0;
-
+        
         // Compute desent angle
-        if (k_traj_start[i] * traj_accept_start[i] == 0)
-            start = start_pol;
-        if (k_traj_end[i] * traj_accept_end[i] == 0)
-            end = end_pol;
-        ex_data->a[i] = desent_angle(start, end);
+        ex_data->a[i] = desent_angle(start_pol, end_pol);
+    }
+}
+
+/*
+ * Calculate the magnitude of velocity given trajectory.
+ */
+double data_t::calc_speed(const line3d_t &traj_line) {
+    vec3d_t flash = geo_to_xyz(traj_line.end);
+    vec3d_t traj = traj_line.vec();
+
+    double speed = 0;
+    int count = 0;
+
+    for (int i = 0; i < data_N; i++) {
+        // Shortcuts
+        double &z0 = ob_data->z0[i];
+        double &h0 = ob_data->h0[i];
+        double &zb = ob_data->zb[i];
+        double &hb = ob_data->hb[i];
+        vec2d_t observer = ob_pos_geo[i].to2d();
+        vec3d_t flash_rel = flash - ob_pos[i];
+
+        // Compute the global vectors of observations
+        vec3d_t k_start = polar_to_xyz({hb, zb});
+        vec3d_t k_end = polar_to_xyz({h0, z0});
+        k_start = local_to_global(k_start, observer);
+        k_end =   local_to_global(k_end, observer);
+
+        // Construct a plane by the observer and trajectory vector
+        vec3d_t plane = flash_rel.xprod(traj).normalized();
+
+        // Project observations to that plane
+        k_start = (k_start - plane*(plane * k_start));
+        k_end = (k_end - plane*(plane * k_end));
+
+        // Calculate distance on the trajectory
+        double lambda_start = (k_start.x*(flash.y-ob_pos[i].y) - k_start.y*(flash.x-ob_pos[i].x))
+            / (traj.x*k_start.y - traj.y*k_start.x);
+        double lambda_end = (k_end.x*(flash.y-ob_pos[i].y) - k_end.y*(flash.x-ob_pos[i].x))
+            / (traj.x*k_end.y - traj.y*k_end.x);
+        double distance = abs(lambda_end - lambda_start);
+
+        // Confirm observation
+        if (k_traj_start[i] && k_traj_end[i]) {
+            double s = distance / ob_data->t[i];
+            if (s > 0 && s < 70000) {
+                speed += s;
+                count++;
+            }
+        }
         
     }
+    return speed / count;
 }
