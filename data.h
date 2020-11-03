@@ -22,7 +22,6 @@ struct data_t {
     // Observer's data
     vec3d_t *ob_pos;     // Position in global coorinates (x,y,z)
     vec3d_t *ob_pos_geo; // Position in geographical coordinates (lat,lon,z)
-    double *ob_e;        // Experience
 
     data_set_t *ob_data; // Data given by observer
     data_set_t *ex_data; // Data produced by answer
@@ -30,6 +29,8 @@ struct data_t {
     // Error of trajecroty
     double *traj_error_start;
     double *traj_error_end;
+    double *traj_accept_start;
+    double *traj_accept_end;
 
     // Additional variables
     double mean_lat;
@@ -38,9 +39,7 @@ struct data_t {
     double *k_z0;
     double *k_h0;
     double *k_traj_start;
-    double *k_traj_start_tmp;
     double *k_traj_end;
-    double *k_traj_end_tmp;
     double *k_traj_a;
 
     /*
@@ -60,7 +59,7 @@ struct data_t {
      * Sets K=0 for all data which square-error is
      * max_error_k times greater than mean square-error
      */
-    int eliminate(double ne, double total, double *errors, double *k, double max_e, double acc); // Abstracttial function
+    void eliminate(double count, double total, double *errors, double *k, double max_e, double acc); // Abstracttial function
     void eliminate_inconsistent_z0(const vec2d_t &flash_geo);
     void eliminate_inconsistent_traj_data(const line3d_t &traj);
     
@@ -84,7 +83,6 @@ struct data_t {
      */
     vec2d_t sigma_z0(const vec2d_t &flash);
     vec2d_t sigma_zb(const vec2d_t &flash);
-    double sigma_h0(const vec3d_t &flash);
 
 
     /*

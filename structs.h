@@ -65,7 +65,6 @@ struct data_set_t {
     double *zb;
     double *hb;
     double *a;
-    double *t;
 
     data_set_t(int n);
 };
