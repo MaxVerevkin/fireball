@@ -102,22 +102,21 @@ void data_t::reset_k_traj() {
  * max_error_k times greater than mean square-error
  */
 void data_t::eliminate(double count, double total, double *errors, double *k, double max_e, double acc) {
+    // Mean error
+    double mean = (total) / (count);
+
     bool clear = false;
     while (!clear) {
         clear = true;
         for (int i = 0; i < data_N; i++) {
-
-            // Mean w/o this observer
-            double mean = (total - errors[i]) / (count - 1);
-            //double mean = (total) / (count);
-    
-            // Reject this data if it's error is higher than both
-            // "mean error * max_e" and accurecy, and if it is not allready rejected.
+            // Reject bservation if it's error is higher than
+            // both "mean error * max_e" and accuracy.
             if (errors[i] > mean*max_e && errors[i] > acc && k[i]) {
+                total -= errors[i];
+                count -= 1;
+                mean = (total) / (count);
                 clear = false;
                 k[i] = 0;
-                total -= errors[i];
-                count--;
             }
         }
     }

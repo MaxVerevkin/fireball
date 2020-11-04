@@ -10,8 +10,8 @@
 #define MAX_ERROR_Z0 3.
 #define MAX_ERROR_H0 4.
 
-#define MAX_ERROR_START 4.
-#define MAX_ERROR_END 4.
+#define MAX_ERROR_START 3.8
+#define MAX_ERROR_END 3.8
 #define MAX_ERROR_A 3.7
 
 #define ACCURACY_H 100. // Meters
