@@ -55,7 +55,13 @@ struct data_t {
     void reset_k_h0();
     void reset_k_traj();
 
+    
+    /*
+     * Heloper functions.
+     */
     double azimuth(int i, const vec2d_t &point_geo);
+    double altitude(int i, const vec3d_t &point_geo);
+
 
     /*
      * Sets K=0 for all data which square-error is

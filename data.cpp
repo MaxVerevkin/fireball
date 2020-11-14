@@ -96,8 +96,15 @@ void data_t::reset_k_traj() {
     }
 }
 
+
+/*
+ * Heloper functions.
+ */
 double data_t::azimuth(int i, const vec2d_t &point_geo) {
     return descent_angle(ob_pos_geo[i].to2d(), point_geo);
+}
+double data_t::altitude(int i, const vec3d_t &point_geo) {
+    return height_to_altitude(ob_pos_geo[i], point_geo);
 }
 
 
@@ -373,11 +380,11 @@ void data_t::process_traj(const line3d_t &traj_line) {
 
         // Transalte start/end points to polar
         vec2d_t start_pol = {
-            height_to_altitude(ob_pos_geo[i], traj_line.start),
+            altitude(i, traj_line.start),
             azimuth(i, traj_line.start.to2d())
         };
         vec2d_t end_pol = {
-            height_to_altitude(ob_pos_geo[i], traj_line.end),
+            altitude(i, traj_line.end),
             azimuth(i, traj_line.end.to2d())
         };
 
