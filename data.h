@@ -55,6 +55,8 @@ struct data_t {
     void reset_k_h0();
     void reset_k_traj();
 
+    double azimuth(int i, const vec2d_t &point_geo);
+
     /*
      * Sets K=0 for all data which square-error is
      * max_error_k times greater than mean square-error

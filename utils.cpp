@@ -114,7 +114,7 @@ double height_to_altitude(vec3d_t p, vec3d_t p0) {
 /*
  * Calculate the disent angle for two points
  */
-double desent_angle(const vec2d_t &start, const vec2d_t &end) {
+double descent_angle(const vec2d_t &start, const vec2d_t &end) {
     // Delta z
     double dz = angle_delta(start.y, end.y);
 

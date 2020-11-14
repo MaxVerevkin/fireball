@@ -96,6 +96,10 @@ void data_t::reset_k_traj() {
     }
 }
 
+double data_t::azimuth(int i, const vec2d_t &point_geo) {
+    return descent_angle(ob_pos_geo[i].to2d(), point_geo);
+}
+
 
 /*
  * Sets K=0 to all data which square-error is
@@ -348,11 +352,11 @@ vec2d_t data_t::sigma_zb(const vec2d_t &flash) {
  */
 void data_t::process_z0(const vec2d_t &flash_geo) {
     for (int i = 0; i < data_N; i++)
-        ex_data->z0[i] = desent_angle(ob_pos_geo[i].to2d(), flash_geo);
+        ex_data->z0[i] = azimuth(i, flash_geo);
 }
 void data_t::process_zb(const vec2d_t &flash_geo) {
     for (int i = 0; i < data_N; i++)
-        ex_data->zb[i] = desent_angle(ob_pos_geo[i].to2d(), flash_geo);
+        ex_data->zb[i] = azimuth(i, flash_geo);
 }
 void data_t::process_traj(const line3d_t &traj_line) {
     vec3d_t flash = geo_to_xyz(traj_line.end);
@@ -370,11 +374,11 @@ void data_t::process_traj(const line3d_t &traj_line) {
         // Transalte start/end points to polar
         vec2d_t start_pol = {
             height_to_altitude(ob_pos_geo[i], traj_line.start),
-            desent_angle(observer, traj_line.start.to2d())
+            azimuth(i, traj_line.start.to2d())
         };
         vec2d_t end_pol = {
             height_to_altitude(ob_pos_geo[i], traj_line.end),
-            desent_angle(observer, traj_line.end.to2d())
+            azimuth(i, traj_line.end.to2d())
         };
 
         // Compute the global vectors of observations
@@ -417,7 +421,7 @@ void data_t::process_traj(const line3d_t &traj_line) {
             traj_accept_end[i] = 0;
         
         // Compute desent angle
-        ex_data->a[i] = desent_angle(start_pol, end_pol);
+        ex_data->a[i] = descent_angle(start_pol, end_pol);
     }
 }
 

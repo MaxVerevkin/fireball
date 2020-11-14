@@ -97,7 +97,7 @@ inline double arc_len(const vec2d_t &a, const vec2d_t &b) {
 /*
  * Calculate the disent angle for two points
  */
-double desent_angle(const vec2d_t &start, const vec2d_t &end);
+double descent_angle(const vec2d_t &start, const vec2d_t &end);
 
 
 // Calculate normal
