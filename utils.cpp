@@ -29,7 +29,6 @@ vec3d_t polar_to_xyz(const vec2d_t &polar) {
     retval.z = sin(polar.x);
     return retval;
 }
-#include <cstdio>
 vec2d_t xyz_to_polar(const vec3d_t &xyz) {
     vec2d_t retval;
     retval.x = atan(xyz.z / xyz.to2d().length());
